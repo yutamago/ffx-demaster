@@ -1,0 +1,29 @@
+# Fire's effect (magic 76, magic_0076) played from an item: the setup of
+# ffx-rust's battle-magic.txt (save 1, cdsp00 under water, Rikku) with the
+# first item record's effect IDs (+0x10/+0x12, land and water) set to 76.
+# fx-thunder.txt (78) and fx-cure.txt (108) are the same with another ID.
+# Shots (fx-fire-<n>.bmp) 20, 40 and 70 frames after the magic file loaded.
+load direct 1 cdsp0000 lockstep
+lockstep on
+pin
+wait 10
+battle 3 0 0
+waitfor 0x0112a8e0:1 01 ff 4000
+writep 0x0112a940 0x24 4c004c00
+wait 60
+# Item, the first item, Rikku
+press down 4 30
+press down 4 30
+press circle 4 30
+press circle 4 30
+press circle 4 30
+press circle 4 0
+waitfor 0x00c64ca0:4 4c000000 ffffffff 600
+waitfor 0x00c64cac:2 0000 ffff 1200
+wait 20
+shot $OUT\fx-fire-1.bmp
+wait 20
+shot $OUT\fx-fire-2.bmp
+wait 30
+shot $OUT\fx-fire-3.bmp
+waitfor 0x00c64ca0:4 ffffffff ffffffff 1200

@@ -47,6 +47,9 @@ Plan and status: `docs/plan.md`. What differs: `docs/differences.md`.
 - `gsmem.rs`, `ps2map.rs`, `mapjob.rs`: field and battle map textures,
   cut out of an emulated PS2 GS memory by the HD texture names
   (`docs/maps.md`; `demaster maps <iso> <vbf> <out> all|<map|area>...`).
+- `ps2fx.rs`, `fxjob.rs`: effect textures (spells, summons, map and
+  monster particles) from the PS2 oef2 blocks, by HD name
+  (`docs/effects.md`). `demaster fx <iso> <vbf> <out> all`.
 - Output layout: `<out>/efl/x/<archive path>` (Fahrenheit's file loader).
 - `config.rs` (`demaster.toml`, defaults in `converter/demaster.toml`),
   `jobs.rs` (Job trait + registry: new jobs go in `jobs::registry()`),
@@ -72,6 +75,9 @@ through `\\wsl.localhost` as missing: give them the real path.
 
 ## Testing in the game
 
+- Test games run with every graphics option at maximum (`tools/sandbox/max.ini`,
+  shotrun's default; ffx-rust's own sandbox is VQ_LOW/TQ_LOW, which drops the
+  top 2 mip levels and makes HD baselines blurry).
 - `tools/shotrun` + `tools/replays/*.txt`: screenshots through the ffx-rust
   harness with our output as a mod (README, "Testing in the game"). Up to 3
   games run side by side (harness slots). Capture only the game window; never

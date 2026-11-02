@@ -1,0 +1,35 @@
+# Ifrit's entry (magic 0x254, magic_0596) on the Thunder Plains (kami00:
+# its battle map has rain and lightning particles), cut down from ffx-rust's
+# battle-ifrit.txt (its comments explain the writes and waits): save 5,
+# party Yuna, Tidus, Wakka, the monsters at 99999 HP. Tidus attacks, Yuna
+# summons Ifrit.
+# Shots (fx-ifrit-<n>.bmp): 1 Tidus's menu (the battle map), 2 and 3
+# Ifrit's entry.
+load direct 5 kami0100 lockstep
+lockstep on
+pin
+wait 10
+write 0x011307e8 01000405ff020306
+battle 34 0 0
+waitfor 0x0112a8e0:1 01 ff 4000
+writep 0x011334d4 0x13cd4 9f860100
+writep 0x011334d4 0x13d10 9f860100
+writep 0x011334d4 0x14c64 9f860100
+writep 0x011334d4 0x14ca0 9f860100
+waitfor 0x023cc08c:4 01000000 ffffffff 600
+wait 30
+shot $OUT\fx-ifrit-1.bmp
+press circle 4 30
+press circle 4 30
+waitfor 0x023cc08c:4 02000000 ffffffff 3000
+wait 30
+press down 4 30
+press circle 4 30
+press down 4 30
+press circle 4 0
+waitfor 0x00c64ca0:4 54020000 ffffffff 600
+waitfor *0x011334d4+0x9a0b:1 05 ff 1500
+wait 150
+shot $OUT\fx-ifrit-2.bmp
+wait 100
+shot $OUT\fx-ifrit-3.bmp
