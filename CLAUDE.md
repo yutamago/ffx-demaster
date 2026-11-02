@@ -72,6 +72,9 @@ through `\\wsl.localhost` as missing: give them the real path.
 
 ## Testing in the game
 
+- Test games run with every graphics option at maximum (`tools/sandbox/max.ini`,
+  shotrun's default; ffx-rust's own sandbox is VQ_LOW/TQ_LOW, which drops the
+  top 2 mip levels and makes HD baselines blurry).
 - `tools/shotrun` + `tools/replays/*.txt`: screenshots through the ffx-rust
   harness with our output as a mod (README, "Testing in the game"). Up to 3
   games run side by side (harness slots). Capture only the game window; never
