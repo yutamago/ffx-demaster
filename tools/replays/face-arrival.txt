@@ -1,0 +1,122 @@
+# Faces: the arrival at Besaid (save 2, bsil0000; ffx-rust
+# tools/replays/event-arrival.txt) in lockstep. Tidus's close-up model
+# (c101) surfaces and calls out; the PS2 close-up models move eyelids and
+# mouth with bones, not texture animation. Shots every 4 updates through
+# the close-up (from 200 updates after the first subtitle) catch the
+# eyelids and mouth in different frames; then Tidus's field model (c001)
+# shouting to the beach, and Wakka's field model (c005, eyes and mouth by
+# texture animation) calling back, every 3 updates.
+load direct 2 bsil0000 lockstep
+lockstep on
+pin
+waitfor 0x01325d94:4 00010000 00ffffff 1500
+waitfor 0x01326d84:4 02000000 ffffffff 1500
+read 0x01325d94 4
+shot $OUT\arrival-00.bmp
+wait 200
+shot $OUT\arrival-01.bmp
+wait 4
+shot $OUT\arrival-02.bmp
+wait 4
+shot $OUT\arrival-03.bmp
+wait 4
+shot $OUT\arrival-04.bmp
+wait 4
+shot $OUT\arrival-05.bmp
+wait 4
+shot $OUT\arrival-06.bmp
+wait 4
+shot $OUT\arrival-07.bmp
+wait 4
+shot $OUT\arrival-08.bmp
+wait 4
+shot $OUT\arrival-09.bmp
+wait 4
+shot $OUT\arrival-10.bmp
+wait 4
+shot $OUT\arrival-11.bmp
+wait 4
+shot $OUT\arrival-12.bmp
+wait 4
+shot $OUT\arrival-13.bmp
+wait 4
+shot $OUT\arrival-14.bmp
+wait 4
+shot $OUT\arrival-15.bmp
+wait 4
+shot $OUT\arrival-16.bmp
+wait 4
+shot $OUT\arrival-17.bmp
+wait 4
+shot $OUT\arrival-18.bmp
+wait 4
+shot $OUT\arrival-19.bmp
+wait 4
+shot $OUT\arrival-20.bmp
+wait 60
+shot $OUT\arrival-21.bmp
+wait 60
+shot $OUT\arrival-22.bmp
+wait 60
+shot $OUT\arrival-23.bmp
+wait 40
+shot $OUT\wakka-01.bmp
+wait 3
+shot $OUT\wakka-02.bmp
+wait 3
+shot $OUT\wakka-03.bmp
+wait 3
+shot $OUT\wakka-04.bmp
+wait 3
+shot $OUT\wakka-05.bmp
+wait 3
+shot $OUT\wakka-06.bmp
+wait 3
+shot $OUT\wakka-07.bmp
+wait 3
+shot $OUT\wakka-08.bmp
+wait 3
+shot $OUT\wakka-09.bmp
+wait 3
+shot $OUT\wakka-10.bmp
+wait 3
+shot $OUT\wakka-11.bmp
+wait 3
+shot $OUT\wakka-12.bmp
+wait 3
+shot $OUT\wakka-13.bmp
+wait 3
+shot $OUT\wakka-14.bmp
+wait 3
+shot $OUT\wakka-15.bmp
+wait 3
+shot $OUT\wakka-16.bmp
+wait 3
+shot $OUT\wakka-17.bmp
+wait 3
+shot $OUT\wakka-18.bmp
+wait 3
+shot $OUT\wakka-19.bmp
+wait 3
+shot $OUT\wakka-20.bmp
+wait 3
+shot $OUT\wakka-21.bmp
+wait 3
+shot $OUT\wakka-22.bmp
+wait 3
+shot $OUT\wakka-23.bmp
+wait 3
+shot $OUT\wakka-24.bmp
+wait 3
+shot $OUT\wakka-25.bmp
+wait 3
+shot $OUT\wakka-26.bmp
+wait 3
+shot $OUT\wakka-27.bmp
+wait 3
+shot $OUT\wakka-28.bmp
+wait 3
+shot $OUT\wakka-29.bmp
+wait 3
+shot $OUT\wakka-30.bmp
+wait 3
