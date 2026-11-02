@@ -1,0 +1,10 @@
+# Salvage ship battle (cdsp00, first formation) on the original code: two shots.
+load direct 1 cdsp0000 lockstep
+lockstep on
+wait 10
+battle 3 0 0
+waitfor 0x0112a8e0:1 01 ff 4000
+wait 60
+shot $OUT\ship-1.bmp
+wait 200
+shot $OUT\ship-2.bmp

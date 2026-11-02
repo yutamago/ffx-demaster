@@ -41,3 +41,25 @@ setting, so any part of the HD Remaster can be kept.
 
 Never commit disc images, extracted files or anything from the game's
 archives.
+
+## Testing in the game
+
+`tools/shotrun` plays a replay script (`tools/replays/*.txt`) through the
+ffx-rust test harness, with the converter's output as a loose-file mod, and
+saves screenshots. It needs an ffx-rust checkout next to this repo (built hook:
+`tools/build-hook.sh` there) and runs from that checkout:
+
+```bash
+cd ../ffx-decomp
+FFX_GAME_DIR=~/steam-games/FFX-X2-HD cargo run --release --manifest-path ../ffx-demaster/tools/shotrun/Cargo.toml -- \
+  ../ffx-demaster/tools/replays/battle-djose.txt 'C:\shots\ps2\djose.trace' <out>/efl/x
+```
+
+Run it once without the mod folder for the HD baseline. `FFX_HOOK_LOG_OPENS=1`
+(passed through `WSLENV`) logs every file the game opens; files served by the
+mod show as `mods:`. Don't set `SHOTRUN_ORIGINAL`: it turns off the hook that
+serves the mod files.
+
+A real Fahrenheit install for manual tests: `C:\_workspaces\fh-demaster-test`
+(alpha12, mod `yuta.demaster`, game copy without the ffx-rust hook in
+`~/ffx-work/demaster/game`).

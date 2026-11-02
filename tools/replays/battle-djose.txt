@@ -1,0 +1,10 @@
+# Djose highroad (genk16_03: Ochu and Garm) from save 5: two shots.
+load direct 5 kami0100 lockstep
+lockstep on
+wait 10
+battle 33 0 3
+waitfor 0x0112a8e0:1 01 ff 4000
+wait 60
+shot $OUT\djose-1.bmp
+wait 200
+shot $OUT\djose-2.bmp
