@@ -1,0 +1,28 @@
+# Cure's effect (magic 108, magic_0108) played from an item: the setup of
+# ffx-rust's battle-magic.txt (save 1, cdsp00 under water, Rikku) with the
+# first item record's effect IDs (+0x10/+0x12, land and water) set to 108.
+# Shots (fx-cure-<n>.bmp) 20, 40 and 70 frames after the magic file loaded.
+load direct 1 cdsp0000 lockstep
+lockstep on
+pin
+wait 10
+battle 3 0 0
+waitfor 0x0112a8e0:1 01 ff 4000
+writep 0x0112a940 0x24 6c006c00
+wait 60
+# Item, the first item, Rikku
+press down 4 30
+press down 4 30
+press circle 4 30
+press circle 4 30
+press circle 4 30
+press circle 4 0
+waitfor 0x00c64ca0:4 6c000000 ffffffff 600
+waitfor 0x00c64cac:2 0000 ffff 1200
+wait 20
+shot $OUT\fx-cure-1.bmp
+wait 20
+shot $OUT\fx-cure-2.bmp
+wait 30
+shot $OUT\fx-cure-3.bmp
+waitfor 0x00c64ca0:4 ffffffff ffffffff 1200
