@@ -1,0 +1,36 @@
+# ui.menus: the event message window with a choice (New Game's "Select a
+# Sphere Grid to use!"), as ffx-rust's draw-ui-dialogue.txt reaches it, no
+# save needed. Shot 1: as the game draws it (HD, or the mod's textures).
+# Then the window's draw handler (g_Windows[i] +0x78) is pointed at
+# yiWindowDrawPlate (0x00907390), the PS2 code's plate draw that the
+# remaster keeps for window kinds 3-9 (TOMkpWindowPlain: meswin shapes
+# 200-203 tinted col_mssgwind0 -> col_mssgwind1, docs/ui.md): shot 2 is
+# what the mod's hook draws. The harness can't hook; the handler is data.
+waitfor 0x0112ca90:4 5d015c01 ffffffff 3000
+waitfor 0x01325d94:4 00010000 00ffffff 3000
+press start 3 20
+waitfor 0x0112ca90:4 17005d01 ffffffff 3000
+lockstep on
+waitfor 0x01325d94:4 40000000 c0ffffff 1500
+wait 37
+key c8 3 20
+key 1c 3 20
+wait 60
+shot $OUT\ui-dialogue-1.bmp
+# the PS2 colours TOSeqInitParam read from the menu sequence data
+read 0x025d1600 0xb8
+read 0x025d15a0 0x60
+read 0x025d0a80 0xa0
+read 0x01876da8 0x20
+readp 0x01876da8 0 0x80
+readp 0x01876dac 0 0x80
+# window kind 3 (TOSetWindowKind): its draw handler is yiWindowDrawPlate
+call 0x00906e60 0 3
+call 0x00906e60 1 3
+readp 0x01876da8 0x60 0x1c
+wait 2
+shot $OUT\ui-dialogue-2.bmp
+# render.aspect = "ps2" (docs/screen.md): the output aspect 4/3, as the mod writes it
+write 0x00c34154 abaaaa3f
+wait 2
+shot $OUT\ui-dialogue-3.bmp

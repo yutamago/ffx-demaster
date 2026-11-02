@@ -14,7 +14,12 @@ Plan and status: `docs/plan.md`. What differs: `docs/differences.md`.
 - ffx-rust (`../ffx-decomp`, private, github.com/yutamago/ffx-rust) is ours:
   use its crates and docs freely (git dependency, pinned rev in `Cargo.toml`).
   Its `docs/formats/*.md` and `symbols/ffx.sym` are the reference for FFX.exe.
-  Do not edit that repo from here; note needed changes in `docs/plan.md`.
+- Decompilation findings go back into ffx-rust (user, 2026-11-02): every new
+  FFX.exe name/address/struct/format fact (and PS2 ELF / IOP / disc format
+  facts) is logged in `docs/ffx-rust-findings.md` (address, name, evidence,
+  which of our docs explains it) as you find it. The orchestrator ports them to
+  ffx-rust (`symbols/ffx.sym` sorted with evidence, `docs/formats/*.md`) on a
+  branch + PR there; agents don't edit ffx-rust directly.
 - Fahrenheit (`../fahrenheit`, alpha12) is a reference for facts; the C# mod
   uses its SDK (`Fahrenheit.Sdk/1.0.0-alpha12`), like `../ffx-debug-revival`.
 - Check results by eye: write PNG previews and look at them, and test in the
@@ -41,12 +46,14 @@ Plan and status: `docs/plan.md`. What differs: `docs/differences.md`.
 - `disc.rs`: reads the ISO, names files with the PC's tables, unpacks
   (`docs/disc.md`).
 - `phyretex.rs`: writes a `*.dds.phyre` (ARGB8, any size) from an HD texture
-  as template. PS2 textures go in at PS2 size, uncompressed (user decision).
+  as template. PS2 textures go in at PS2 size, uncompressed (user decision),
+  with a full mip chain when the HD texture has one (`mip_chain`).
 - `ps2chr.rs`, `bake.rs`, `chrjob.rs`: character textures. Each HD triangle is
   matched to its PS2 twin by position and painted with the PS2 texels.
 - `chralpha.rs`: character materials and texture alpha. The PS2 blended every
   character polygon by texture alpha; materials (or segments) that sample
-  see-through PS2 texels get the blended twin of their shader variant
+  see-through PS2 texels get the `UATFOPQ` (alpha to coverage) twin of their
+  shader variant and a low `AlphaThreshold`
   (`docs/models.md`, "Alpha"; `demaster materials-debug`).
 - `gsmem.rs`, `ps2map.rs`, `mapjob.rs`: field and battle map textures,
   cut out of an emulated PS2 GS memory by the HD texture names
@@ -70,6 +77,8 @@ Plan and status: `docs/plan.md`. What differs: `docs/differences.md`.
   `demaster music <iso> <vbf> <out> all|<id|name>`, `demaster music-bank`.
 - `bgjob.rs`: 2D-room background layers (`docs/screen.md`).
   `demaster backgrounds <iso> <vbf> <out> all|<map>`.
+- `shaderjob.rs`, `dxbc.rs`: the character pixel shaders with the PS2 light
+  falloff (`render.lighting`; DXBC token walk and checksum, `docs/render.md`).
 - Output layout: `<out>/efl/x/<archive path>` (Fahrenheit's file loader).
 - `config.rs` (`demaster.toml`, defaults in `converter/demaster.toml`),
   `jobs.rs` (Job trait + registry: new jobs go in `jobs::registry()`),
@@ -80,6 +89,8 @@ Plan and status: `docs/plan.md`. What differs: `docs/differences.md`.
   patches), `docs/config.md`.
 - Jobs must be deterministic (same input, same bytes): no HashMap iteration
   order in results; parallel work writes in a fixed order.
+- The converter is a library too (`src/lib.rs`, every module `pub`) for
+  FFX Music Studio.
 
 ```bash
 cargo build --release -p demaster
@@ -92,6 +103,18 @@ dotnet build -c Release ffx-demaster.slnx && dotnet run tools/package.cs -- out.
 Paths with `(`/`)` (the ISO's name) upset the agent sandbox: symlink the ISO
 to a plain path (`/tmp/dm-ffx.iso`). Windows processes see WSL symlinks
 through `\\wsl.localhost` as missing: give them the real path.
+
+## FFX Music Studio (`studio/`, binary `ffx-music-studio`)
+
+Plays and edits (in memory) the disc's music on `sqseq` + `spu2`
+(`docs/studio.md`): egui window, cpal output (Windows; Linux only with
+`--features alsa`), `--render <track> <s> <out.wav> [edits]` through the
+same path. `seq.rs` decodes/encodes BGMs (byte-exact) and normalizes tracks
+for note edits; the driver takes the studio's `sqseq::Mods` (default = the
+PS2 driver exactly). Tests: `cargo test -p ffx-music-studio`, with the disc
+`FFX_STUDIO_CONFIG=<demaster.toml>`. Windows: `tools/build-studio-windows.sh`.
+Capturing its window with wincap: end it with `taskkill.exe /PID` (a WSL
+`timeout` leaves the Windows process running).
 
 ## Testing in the game
 
