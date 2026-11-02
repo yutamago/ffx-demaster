@@ -1,0 +1,42 @@
+# Battle subtitles (ui.battle_subtitles, docs/patches.md): the harness can't
+# patch code, so this sets the bit the mod's patch makes the getter answer
+# (g_SaveMenu 0x0113079c bit 9) through the game's own setter,
+# MsSetSaveConfigSubTitle (0x00785f80). Developer save 22 (Luca, as ffx-rust's
+# devsave-22-luca.txt), then the docks' battle (field 12, lchb02;
+# formation lchb02_00, whose script says "Whoa! What are they?" at the
+# start). The developer save has the bit set already (g_SaveMenu 0x0001a763),
+# so the replay clears it first and sets it again through the setter. Shots
+# (battle-subtitles-<n>.bmp) every 40 updates from the battle's start: with
+# the bit, "Tidus: Whoa! What are they?" and Lulu's two lines at the bottom
+# (shots 1-6, checked 2026-11-02); without it (comment out the call), none.
+load devsave 22 lchb0201 lockstep
+lockstep on
+pin
+waitfor 0x01325d94:4 40000000 c0ffffff 1500
+wait 150
+write 0x0113079c 63a50100
+call 0x00785f80 1
+read 0x0113079c 4
+battle 12 0 0
+waitfor 0x0112a8e0:1 01 ff 4000
+read 0x0113079c 4
+wait 20
+shot $OUT\battle-subtitles-1.bmp
+wait 40
+shot $OUT\battle-subtitles-2.bmp
+wait 40
+shot $OUT\battle-subtitles-3.bmp
+wait 40
+shot $OUT\battle-subtitles-4.bmp
+wait 40
+shot $OUT\battle-subtitles-5.bmp
+wait 40
+shot $OUT\battle-subtitles-6.bmp
+wait 40
+shot $OUT\battle-subtitles-7.bmp
+wait 40
+shot $OUT\battle-subtitles-8.bmp
+wait 60
+shot $OUT\battle-subtitles-9.bmp
+wait 60
+shot $OUT\battle-subtitles-10.bmp
