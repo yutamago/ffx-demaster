@@ -1,0 +1,23 @@
+# Field models: save 1 (salvage ship deck, cdsp0000), Tidus standing, then
+# walking. Shots 1 and 2 are 8 frames apart (idle animation), 3 and 4 while
+# he walks (adapted from ffx-rust tools/replays/field-walk.txt, whose wait
+# pins the shot to the event's clock).
+load direct 1 cdsp0000 lockstep
+lockstep on
+pin
+waitfor 0x01325d94:4 40000000 c0ffffff 1500
+wait 37
+shot $OUT\field-1.bmp
+wait 8
+shot $OUT\field-2.bmp
+pad down
+wait 20
+shot $OUT\field-3.bmp
+wait 6
+shot $OUT\field-4.bmp
+pad
+pad left
+wait 12
+pad
+wait 30
+shot $OUT\field-5.bmp
