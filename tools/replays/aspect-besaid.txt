@@ -1,0 +1,19 @@
+# render.aspect = "ps2" in the harness (docs/screen.md, "Checked"): the
+# harness can't run the mod's hooks, so memory writes do the same:
+# - 0x00c34154 = 4/3: the output aspect PostProcessManager_setNon16By9Viewport
+#   fits the frame into (the mod writes the same);
+# - the PS2 screen scale fx (0x01137010) x 4/3, so Cam_Apply's aspect a comes
+#   in 3/4 smaller and setCameraAspectRatio stores a (the mod's hook passes
+#   a x 3/4 instead; fx also moves the PS2-side projection, which the mod
+#   leaves alone).
+# Besaid beach from save 3: the HD shot, then the same frame 4:3.
+load direct 3 bsil0000
+lockstep on
+waitfor 0x01325d94:4 40000000 c0ffffff 1500
+wait 37
+shot $OUT\aspect-besaid-hd.bmp
+write 0x00c34154 abaaaa3f
+write 0x01137010 8988883f
+wait 2
+readp 0x00ccb9d8 0xdc 0x150 4
+shot $OUT\aspect-besaid-43.bmp
