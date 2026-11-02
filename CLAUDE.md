@@ -53,6 +53,12 @@ Plan and status: `docs/plan.md`. What differs: `docs/differences.md`.
 - `uijob.rs`: menu atlases, portraits, title screen, loading screen, button
   glyphs (`docs/ui.md`; font plan in `docs/font.md`).
   `demaster ui <iso> <vbf> <out>`.
+- `ps2movie.rs`, `moviejob.rs`: the PS2 FMVs (IPU bitstream decoder,
+  delta-coded sound) encoded to the PC's WebM through an external ffmpeg
+  (`docs/movies.md`). `demaster movies <iso> <vbf> <mod> all|<name>...`,
+  `demaster movie-debug ...`.
+- `bgjob.rs`: 2D-room background layers (`docs/screen.md`).
+  `demaster backgrounds <iso> <vbf> <out> all|<map>`.
 - Output layout: `<out>/efl/x/<archive path>` (Fahrenheit's file loader).
 - `config.rs` (`demaster.toml`, defaults in `converter/demaster.toml`),
   `jobs.rs` (Job trait + registry: new jobs go in `jobs::registry()`),
