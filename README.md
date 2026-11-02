@@ -4,15 +4,64 @@ A [Fahrenheit](https://github.com/fahrenheit-crew/fahrenheit) mod that makes
 the Final Fantasy X HD Remaster (Steam) look like the original PS2 game:
 presentation from the PS2, logic from the PC.
 
-**Status: research.** Nothing is playable yet.
+**Status: early.** The PS2 textures of the monsters, NPCs, aeons, weapons
+and objects whose HD model kept the PS2 mesh work. Maps, effects, the party
+models, the interface and the rendering changes are still to come
+([`docs/plan.md`](docs/plan.md)).
 
-The mod ships no game assets. A converter reads the player's own PS2 disc
-image and writes the PS2 textures, models and movies as loose files that
-Fahrenheit's file loader puts in place of the HD ones. Every change is a
+The mod ships no game assets. Its converter, `demaster.exe`, reads your own
+PS2 disc image and writes the PS2 textures, models and movies as loose files
+that Fahrenheit's file loader puts in place of the HD ones. Every change is a
 setting, so any part of the HD Remaster can be kept.
+
+## Install
+
+You need:
+- FINAL FANTASY X/X-2 HD Remaster on Steam (Windows);
+- [Fahrenheit](https://github.com/fahrenheit-crew/fahrenheit/releases)
+  1.0.0-alpha12 or later, installed as in its
+  [installation guide](https://github.com/fahrenheit-crew/fahrenheit/wiki/Installation-guide);
+- an image (`.iso`) of your own Final Fantasy X PS2 disc, any region.
+
+Then:
+
+1. Unpack the release zip into your Fahrenheit folder, so the mod ends up in
+   `mods\yuta.demaster\` (next to Fahrenheit's `bin` folder).
+2. Open `mods\yuta.demaster\demaster.toml` in a text editor and set `iso`
+   under `[source]` to your disc image, in single quotes:
+
+   ```toml
+   [source]
+   iso = 'D:\PS2\Final Fantasy X.iso'
+   ```
+
+   If the game isn't in a usual Steam folder, also set `game` to the folder
+   with `FFX.exe`.
+3. Run `mods\yuta.demaster\demaster.exe` (double-click, or `demaster.exe
+   build` in a terminal). It writes the PS2 files into the mod folder; the
+   first run takes a few minutes.
+4. Add a line `yuta.demaster` to `mods\loadorder` (create the file if it
+   isn't there).
+5. Start the game through Fahrenheit (`bin\fhstage0.exe <path to FFX.exe>`).
+
+In the game, **F8** opens a small window that says whether the PS2 files
+match `demaster.toml`, and how to rebuild them if not. It opens by itself
+when they don't.
+
+## Settings
+
+Every difference between the versions is a setting in `demaster.toml`; the
+defaults give the PS2 look with the PC's game logic. [`docs/config.md`](docs/config.md)
+describes them all. **After changing a setting, run `demaster.exe` again and
+restart the game**: Fahrenheit picks up the mod's files only at startup. A
+rebuild only redoes what changed and removes the files of whatever you
+switched back to HD.
+
+To uninstall, delete `mods\yuta.demaster` and its line in `mods\loadorder`.
 
 ## Documents
 
+- [`docs/config.md`](docs/config.md): every setting.
 - [`docs/differences.md`](docs/differences.md): every difference between
   the two versions, how the mod restores it, its setting and the effort.
 - [`docs/disc.md`](docs/disc.md): how the PS2 disc stores its files and how
@@ -20,6 +69,49 @@ setting, so any part of the HD Remaster can be kept.
 - [`docs/research/`](docs/research): the evidence. Version differences with
   sources, the measured HD-vs-PS2 asset comparison, the PS2 texture formats,
   Fahrenheit's file loading.
+
+## Build
+
+The repository has two parts:
+
+- `converter/`: `demaster`, the converter (Rust). It needs the ffx-rust
+  crates (private, `github.com/yutamago/ffx-rust`, pinned in `Cargo.toml`).
+- `mod/`: `yuta.demaster`, the Fahrenheit mod (C#, .NET 10,
+  `Fahrenheit.Sdk/1.0.0-alpha12`).
+
+```bash
+cargo build --release -p demaster              # Linux build: target/release/demaster
+tools/build-windows.sh                         # demaster.exe via cargo-xwin (Linux/WSL)
+dotnet build -c Release ffx-demaster.slnx      # mod/artifacts/deploy/rel/mods/yuta.demaster/
+dotnet run tools/package.cs -- yuta.demaster.zip   # the release zip
+cargo test -p demaster                         # config tests, incl. that mod/ knows every setting
+```
+
+On Windows, `cargo build --release -p demaster --target
+x86_64-pc-windows-msvc` builds `demaster.exe` directly. CI
+(`.github/workflows/build.yml`) does that on every push and uploads the zip
+as an artifact; pushing a tag `v*` publishes a release
+(`.github/workflows/release.yml`). Both need the repository secret
+`FFX_RUST_TOKEN` with read access to ffx-rust.
+
+While developing, run the converter against any folder:
+
+```bash
+target/release/demaster build --config my.toml --mod-dir <Fahrenheit>/mods/yuta.demaster
+```
+
+### Adding a converter job
+
+A job turns part of the disc into files for the mod folder and is switched by
+settings. Implement `jobs::Job` (`name`, `settings`, `enabled`, `run`) in a
+module and add its jobs to `jobs::registry()` in `converter/src/jobs.rs`.
+`run` gets the disc (`ctx.disc(|d| ...)`), `FFX_Data.vbf` (`ctx.pc`) and the
+config, and writes files with `out.put(archive_path, bytes)`. The build
+handles the rest: skipping unchanged jobs, removing the files of jobs that
+are off, the manifest and the stamp. Every setting already exists in
+`converter/src/config.rs`; a new one goes there, in `converter/demaster.toml`,
+`mod/Settings.cs` and `docs/config.md` (a test checks they agree). Settings
+applied by code go in `mod/Patches.cs`.
 
 ## Tools
 
@@ -62,4 +154,8 @@ serves the mod files.
 
 A real Fahrenheit install for manual tests: `C:\_workspaces\fh-demaster-test`
 (alpha12, mod `yuta.demaster`, game copy without the ffx-rust hook in
-`~/ffx-work/demaster/game`).
+`~/ffx-work/demaster/game`). Its `run.ps1 -Seconds N` starts the game through
+`fhstage0.exe` and stops it after N seconds; the results are in
+`logs\<session>\` (`Yuta.Demaster.DemasterModule.log`: build status and
+patches; `Fahrenheit.Runtime.FhFileLoaderModule.log`: one "replaces file"
+line per file of the mod).
