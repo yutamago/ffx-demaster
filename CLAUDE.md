@@ -14,7 +14,12 @@ Plan and status: `docs/plan.md`. What differs: `docs/differences.md`.
 - ffx-rust (`../ffx-decomp`, private, github.com/yutamago/ffx-rust) is ours:
   use its crates and docs freely (git dependency, pinned rev in `Cargo.toml`).
   Its `docs/formats/*.md` and `symbols/ffx.sym` are the reference for FFX.exe.
-  Do not edit that repo from here; note needed changes in `docs/plan.md`.
+- Decompilation findings go back into ffx-rust (user, 2026-11-02): every new
+  FFX.exe name/address/struct/format fact (and PS2 ELF / IOP / disc format
+  facts) is logged in `docs/ffx-rust-findings.md` (address, name, evidence,
+  which of our docs explains it) as you find it. The orchestrator ports them to
+  ffx-rust (`symbols/ffx.sym` sorted with evidence, `docs/formats/*.md`) on a
+  branch + PR there; agents don't edit ffx-rust directly.
 - Fahrenheit (`../fahrenheit`, alpha12) is a reference for facts; the C# mod
   uses its SDK (`Fahrenheit.Sdk/1.0.0-alpha12`), like `../ffx-debug-revival`.
 - Check results by eye: write PNG previews and look at them, and test in the
