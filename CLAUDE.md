@@ -50,6 +50,9 @@ Plan and status: `docs/plan.md`. What differs: `docs/differences.md`.
 - `ps2fx.rs`, `fxjob.rs`: effect textures (spells, summons, map and
   monster particles) from the PS2 oef2 blocks, by HD name
   (`docs/effects.md`). `demaster fx <iso> <vbf> <out> all`.
+- `uijob.rs`: menu atlases, portraits, title screen, loading screen, button
+  glyphs (`docs/ui.md`; font plan in `docs/font.md`).
+  `demaster ui <iso> <vbf> <out>`.
 - Output layout: `<out>/efl/x/<archive path>` (Fahrenheit's file loader).
 - `config.rs` (`demaster.toml`, defaults in `converter/demaster.toml`),
   `jobs.rs` (Job trait + registry: new jobs go in `jobs::registry()`),

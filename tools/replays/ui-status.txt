@@ -1,0 +1,19 @@
+# UI: the main menu's Status page (face_ply portraits) and the battle HUD's
+# CTB list come from different files; this one checks the menu faces. From
+# save slot 1 (salvage ship deck): open the menu, Status (four down from
+# Sphere Grid), pick the first character, then the overdrive page.
+load direct 1 cdsp0000 lockstep
+lockstep on
+pin
+wait 120
+press triangle 4 40
+press down 4 15
+press down 4 15
+press down 4 15
+press down 4 15
+press circle 4 40
+shot $OUT\ui-status-1.bmp
+press circle 4 60
+shot $OUT\ui-status-2.bmp
+press right 4 40
+shot $OUT\ui-status-3.bmp
