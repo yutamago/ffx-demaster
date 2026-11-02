@@ -19,6 +19,10 @@ fn main() -> ffx_harness::Result<()> {
     let log = game.new_log();
     let quit = game.quit();
     for l in log.lines().filter(|l| l.contains("FAULT") || l.contains("PANIC") || l.contains("mod")).take(20) { eprintln!("log: {l}"); }
+    // SHOTRUN_LOG_GREP=<text>: every log line with it (FFX_HOOK_LOG_OPENS's file opens, say)
+    if let Ok(pat) = std::env::var("SHOTRUN_LOG_GREP") {
+        for l in log.lines().filter(|l| l.contains(&pat)) { eprintln!("log: {l}"); }
+    }
     for line in played? { println!("{line}"); }
     quit
 }

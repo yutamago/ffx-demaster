@@ -1,0 +1,20 @@
+# The battle theme from the "Original" soundtrack bank (docs/music.md, "In
+# the game"): save 5 (Djose highroad), the save's soundtrack byte
+# (g_SaveData 0x0112ca90 + 0x5ec) set to 1 and iMusicRefreshBgmType
+# (0x008cc170) queued, as the game's menu does, then a battle (genk16_03),
+# whose music FMOD reads from sound_pc/music_ps2. With FFX_AUDIO_WAV the
+# capture runs from `audiomark start` (the battle) to `audiomark end`.
+load direct 5 kami0100 lockstep
+lockstep on
+wait 10
+write 0x0112d07c 01
+callnext 0x008cc170
+wait 10
+audiomark start
+battle 33 0 3
+waitfor 0x0112a8e0:1 01 ff 4000
+wait 60
+shot $OUT\music-battle-1.bmp
+wait 1200
+audiomark end
+shot $OUT\music-battle-2.bmp

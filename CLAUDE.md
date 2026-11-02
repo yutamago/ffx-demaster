@@ -57,6 +57,10 @@ Plan and status: `docs/plan.md`. What differs: `docs/differences.md`.
   delta-coded sound) encoded to the PC's WebM through an external ffmpeg
   (`docs/movies.md`). `demaster movies <iso> <vbf> <mod> all|<name>...`,
   `demaster movie-debug ...`.
+- `sqseq.rs`, `spu2.rs`, `fsb5.rs`, `musicjob.rs`: the PS2 music driver
+  (port of `iopsound.irx`) on an SPU2 model, rendering the disc's
+  `musicNNN.bgm` into the "Original" soundtrack bank (`docs/music.md`).
+  `demaster music <iso> <vbf> <out> all|<id|name>`, `demaster music-bank`.
 - `bgjob.rs`: 2D-room background layers (`docs/screen.md`).
   `demaster backgrounds <iso> <vbf> <out> all|<map>`.
 - Output layout: `<out>/efl/x/<archive path>` (Fahrenheit's file loader).
