@@ -1,0 +1,15 @@
+# Besaid battle (field 8, bsil05, formation 3: Dingo m009, Water Flan m016,
+# Condor m028) from save 3: kept-mesh monsters with fur, jelly and feathers
+# (docs/models.md, "Alpha"). Three shots (b-1..3), 40, 100, 160 frames after
+# the battle is ready.
+load direct 3 bsil0000 lockstep
+lockstep on
+wait 10
+battle 8 0 3
+waitfor 0x0112a8e0:1 01 ff 4000
+wait 40
+shot $OUT\b-1.bmp
+wait 60
+shot $OUT\b-2.bmp
+wait 60
+shot $OUT\b-3.bmp
