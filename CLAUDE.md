@@ -48,11 +48,27 @@ Plan and status: `docs/plan.md`. What differs: `docs/differences.md`.
   cut out of an emulated PS2 GS memory by the HD texture names
   (`docs/maps.md`; `demaster maps <iso> <vbf> <out> all|<map|area>...`).
 - Output layout: `<out>/efl/x/<archive path>` (Fahrenheit's file loader).
+- `config.rs` (`demaster.toml`, defaults in `converter/demaster.toml`),
+  `jobs.rs` (Job trait + registry: new jobs go in `jobs::registry()`),
+  `build.rs` (`demaster build`: skips unchanged jobs, removes files of jobs
+  that are off, writes `build/files.json` and `build/stamp.json`).
+  Settings live in 4 places a test keeps in sync: `config.rs`,
+  `converter/demaster.toml`, `mod/Settings.cs` (+ `mod/Patches.cs` for code
+  patches), `docs/config.md`.
+- Jobs must be deterministic (same input, same bytes): no HashMap iteration
+  order in results; parallel work writes in a fixed order.
 
 ```bash
 cargo build --release -p demaster
-./target/release/demaster chr <iso> ~/steam-games/FFX-X2-HD/data/FFX_Data.vbf <out> all
+./target/release/demaster build --config my.toml --mod-dir <mod folder>   # [source] iso/game in my.toml
+./target/release/demaster chr <iso> ~/steam-games/FFX-X2-HD/data/FFX_Data.vbf <out> all   # + PNG previews
+tools/build-windows.sh            # demaster.exe (cargo-xwin, static CRT)
+dotnet build -c Release ffx-demaster.slnx && dotnet run tools/package.cs -- out.zip
 ```
+
+Paths with `(`/`)` (the ISO's name) upset the agent sandbox: symlink the ISO
+to a plain path (`/tmp/dm-ffx.iso`). Windows processes see WSL symlinks
+through `\\wsl.localhost` as missing: give them the real path.
 
 ## Testing in the game
 
@@ -62,4 +78,11 @@ cargo build --release -p demaster
   take full-desktop screenshots (they show the user's screen).
 - Fahrenheit install for real tests: `C:\_workspaces\fh-demaster-test`
   (mod folder `mods/yuta.demaster`, game copy `~/ffx-work/demaster/game`
-  without the ffx-rust `DINPUT8.dll`).
+  without the ffx-rust `DINPUT8.dll`). The mod folder holds the installed
+  `yuta.demaster.dll`, `demaster.exe` and a `demaster.toml` pointing at the
+  ISO and game copy through `\\wsl.localhost`. Launch from WSL with
+  `cd .../bin && timeout 45 ./fhstage0.exe '\\wsl.localhost\Ubuntu\home\angelo\ffx-work\demaster\game\FFX.exe'`
+  (the sandbox refuses `cmd.exe`/`powershell.exe`; the game exits with
+  fhstage0), then read `logs/<newest>/Yuta.Demaster.DemasterModule.log` and
+  count "replaces file" in `Fahrenheit.Runtime.FhFileLoaderModule.log`.
+  Other agents run their own FFX.exe instances: never kill FFX by name.
