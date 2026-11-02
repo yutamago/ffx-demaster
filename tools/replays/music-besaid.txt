@@ -1,0 +1,19 @@
+# Besaid beach (bsil0000) from save 3 with the "Original" soundtrack: the
+# save's soundtrack byte (g_SaveData 0x0112ca90 + 0x5ec) set to 1 and
+# iMusicRefreshBgmType (0x008cc170) queued, as the game's menu does, so
+# FMOD switches to sound_pc/music_ps2 and restarts the map's music from the
+# PS2 bank (docs/music.md, "In the game"). With FFX_AUDIO_WAV the capture
+# runs from `audiomark start` (after the switch) to `audiomark end`.
+load direct 3 bsil0000 lockstep
+lockstep on
+pin
+waitfor 0x01325d94:4 40000000 c0ffffff 1500
+write 0x0112d07c 01
+callnext 0x008cc170
+wait 30
+audiomark start
+wait 300
+shot $OUT\music-besaid-1.bmp
+wait 900
+audiomark end
+shot $OUT\music-besaid-2.bmp

@@ -1,0 +1,16 @@
+# render.aspect = "ps2" in a battle with the HUD (writes as in
+# aspect-besaid.txt; the battle's fx is 0.8 too). Djose highroad (genk16_03)
+# from save 5: the HD shot, then 4:3.
+load direct 5 kami0100 lockstep
+lockstep on
+wait 10
+battle 33 0 3
+waitfor 0x0112a8e0:1 01 ff 4000
+wait 60
+read 0x01137010 8
+shot $OUT\aspect-djose-hd.bmp
+write 0x00c34154 abaaaa3f
+write 0x01137010 8988883f
+wait 2
+readp 0x00ccb9d8 0xdc 0x150 4
+shot $OUT\aspect-djose-43.bmp

@@ -57,10 +57,17 @@ Plan and status: `docs/plan.md`. What differs: `docs/differences.md`.
 - `uijob.rs`: menu atlases, portraits, title screen, loading screen, button
   glyphs (`docs/ui.md`; font plan in `docs/font.md`).
   `demaster ui <iso> <vbf> <out>`.
+- `fontjob.rs`: the PS2 font for the European languages: glyph pages
+  and the width table of `uspc/menu/base.ftc` (`docs/font.md`), run by
+  `demaster ui` and the `ui.font` job.
 - `ps2movie.rs`, `moviejob.rs`: the PS2 FMVs (IPU bitstream decoder,
   delta-coded sound) encoded to the PC's WebM through an external ffmpeg
   (`docs/movies.md`). `demaster movies <iso> <vbf> <mod> all|<name>...`,
   `demaster movie-debug ...`.
+- `sqseq.rs`, `spu2.rs`, `fsb5.rs`, `musicjob.rs`: the PS2 music driver
+  (port of `iopsound.irx`) on an SPU2 model, rendering the disc's
+  `musicNNN.bgm` into the "Original" soundtrack bank (`docs/music.md`).
+  `demaster music <iso> <vbf> <out> all|<id|name>`, `demaster music-bank`.
 - `bgjob.rs`: 2D-room background layers (`docs/screen.md`).
   `demaster backgrounds <iso> <vbf> <out> all|<map>`.
 - Output layout: `<out>/efl/x/<archive path>` (Fahrenheit's file loader).
