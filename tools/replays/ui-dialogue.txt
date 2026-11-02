@@ -30,3 +30,7 @@ call 0x00906e60 1 3
 readp 0x01876da8 0x60 0x1c
 wait 2
 shot $OUT\ui-dialogue-2.bmp
+# render.aspect = "ps2" (docs/screen.md): the output aspect 4/3, as the mod writes it
+write 0x00c34154 abaaaa3f
+wait 2
+shot $OUT\ui-dialogue-3.bmp
