@@ -1,0 +1,50 @@
+# NPCs and Yuna: ffx-rust devsave-22-luca.txt (Luca, the boat coming in;
+# converted NPCs n177, n182-n184, n216, n217, n234 load in its cut
+# scene) with shots through the scene every 150 updates, then the docks
+# battle (Yuna, Tidus, Lulu). The scene camera keeps real time, so the
+# framing differs between runs; the NPCs are what to look at.
+load devsave 22 lchb0201 lockstep
+lockstep on
+pin
+waitfor 0x01325d94:4 40000000 c0ffffff 1500
+wait 150
+shot $OUT\scene-01.bmp
+read 0x01325d94 4
+wait 150
+shot $OUT\scene-02.bmp
+wait 150
+shot $OUT\scene-03.bmp
+wait 150
+shot $OUT\scene-04.bmp
+read 0x01325d94 4
+wait 150
+shot $OUT\scene-05.bmp
+wait 150
+shot $OUT\scene-06.bmp
+wait 150
+shot $OUT\scene-07.bmp
+wait 150
+shot $OUT\scene-08.bmp
+read 0x01325d94 4
+wait 150
+shot $OUT\scene-09.bmp
+wait 150
+shot $OUT\scene-10.bmp
+wait 150
+shot $OUT\scene-11.bmp
+read 0x01325d94 4
+battle 12 0 0
+waitfor 0x0112a8e0:1 01 ff 4000
+waitfor 0x023cc08c:4 01000000 ffffffff 1500
+wait 30
+shot $OUT\battle-tidus.bmp
+press circle 4 30
+press circle 4 30
+waitfor 0x023cc08c:4 02000000 ffffffff 1500
+wait 30
+shot $OUT\battle-yuna.bmp
+press circle 4 30
+press circle 4 30
+waitfor 0x023cc08c:4 20000000 ffffffff 1500
+wait 30
+shot $OUT\battle-lulu.bmp
