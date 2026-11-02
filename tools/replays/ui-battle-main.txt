@@ -1,0 +1,23 @@
+# ui.menus = ps2, battle: the main command window as the mod's hook draws it.
+# Run with tools/calllist, not shotrun: the @ lines are its commands (docs/ui.md, "The battle command windows").
+# The window's draw callback (+0x90) is pointed at a call-list thunk holding the calls the
+# hook makes (PS2 rectangle, dum91 -> dum92 gradient box, the scroll part, the scissor, the
+# names, the cursor), so the game itself makes them during its update.
+load direct 1 cdsp0000 lockstep
+lockstep on
+pin
+wait 10
+battle 3 0 0
+waitfor 0x0112a8e0:1 01 ff 4000
+wait 60
+shot $OUT\btl-1-hd.bmp
+@base
+@alloc T 4096
+write {T} 5589e5565753e8000000005e81c6f50000008b0685c0743883f80175138b55088b4e0c8b0c0a8b5608890a83c610ebe28b5e0489d98d7c8e0485c97408ff3783ef0449ebf4ffd08d249c8d749e08ebc25b5f5e5d31c0c3
+read 0x0133c950 0xf0
+@ps2btl 0 T centred
+wait 1
+shot $OUT\btl-2-ps2.bmp
+write 0x00c34154 abaaaa3f
+wait 2
+shot $OUT\btl-3-ps2-43.bmp

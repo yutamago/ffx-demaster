@@ -1,0 +1,7 @@
+[package]
+name = "calllist"
+version = "0.1.0"
+edition = "2024"
+[dependencies]
+ffx-harness = { path = "../../../ffx-decomp/crates/ffx-harness" }
+[workspace]
