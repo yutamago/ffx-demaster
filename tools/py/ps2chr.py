@@ -70,7 +70,7 @@ def parse(path, want_points=False):
         strips = []
         for g in range(ng):
             ge = gp + 12 * g
-            word, mat = u8(b, ge), u8(b, ge + 1)
+            word, mat = u8(b, ge), u16(b, ge + 2)
             mats.add(mat)
             cnt = u16(b, ge + 4)
             q = h + u32(b, ge + 8)
