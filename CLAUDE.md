@@ -44,6 +44,9 @@ Plan and status: `docs/plan.md`. What differs: `docs/differences.md`.
   as template. PS2 textures go in at PS2 size, uncompressed (user decision).
 - `ps2chr.rs`, `bake.rs`, `chrjob.rs`: character textures. Each HD triangle is
   matched to its PS2 twin by position and painted with the PS2 texels.
+- `ps2fx.rs`, `fxjob.rs`: effect textures (spells, summons, map and
+  monster particles) from the PS2 oef2 blocks, by HD name
+  (`docs/effects.md`). `demaster fx <iso> <vbf> <out> all`.
 - Output layout: `<out>/efl/x/<archive path>` (Fahrenheit's file loader).
 
 ```bash
