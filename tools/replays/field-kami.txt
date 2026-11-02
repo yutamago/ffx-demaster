@@ -1,0 +1,9 @@
+# Thunder Plains (kami0000, map kami/kami00) from save 5 (saved at the
+# travel agency, kami0100): two shots of the field map.
+load direct 5 kami0000
+lockstep on
+waitfor 0x01325d94:4 40000000 c0ffffff 1500
+wait 37
+shot $OUT\kami-1.bmp
+wait 150
+shot $OUT\kami-2.bmp

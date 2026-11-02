@@ -1,0 +1,9 @@
+# Besaid beach (bsil0000, map bsil/bsil00) from save 3: two shots of the
+# field map (as ffx-rust draw-bsil0000.txt, frame 101, then later).
+load direct 3 bsil0000
+lockstep on
+waitfor 0x01325d94:4 40000000 c0ffffff 1500
+wait 37
+shot $OUT\besaid-1.bmp
+wait 150
+shot $OUT\besaid-2.bmp
