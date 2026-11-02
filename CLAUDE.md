@@ -81,6 +81,8 @@ Plan and status: `docs/plan.md`. What differs: `docs/differences.md`.
   patches), `docs/config.md`.
 - Jobs must be deterministic (same input, same bytes): no HashMap iteration
   order in results; parallel work writes in a fixed order.
+- The converter is a library too (`src/lib.rs`, every module `pub`) for
+  FFX Music Studio.
 
 ```bash
 cargo build --release -p demaster
@@ -93,6 +95,18 @@ dotnet build -c Release ffx-demaster.slnx && dotnet run tools/package.cs -- out.
 Paths with `(`/`)` (the ISO's name) upset the agent sandbox: symlink the ISO
 to a plain path (`/tmp/dm-ffx.iso`). Windows processes see WSL symlinks
 through `\\wsl.localhost` as missing: give them the real path.
+
+## FFX Music Studio (`studio/`, binary `ffx-music-studio`)
+
+Plays and edits (in memory) the disc's music on `sqseq` + `spu2`
+(`docs/studio.md`): egui window, cpal output (Windows; Linux only with
+`--features alsa`), `--render <track> <s> <out.wav> [edits]` through the
+same path. `seq.rs` decodes/encodes BGMs (byte-exact) and normalizes tracks
+for note edits; the driver takes the studio's `sqseq::Mods` (default = the
+PS2 driver exactly). Tests: `cargo test -p ffx-music-studio`, with the disc
+`FFX_STUDIO_CONFIG=<demaster.toml>`. Windows: `tools/build-studio-windows.sh`.
+Capturing its window with wincap: end it with `taskkill.exe /PID` (a WSL
+`timeout` leaves the Windows process running).
 
 ## Testing in the game
 

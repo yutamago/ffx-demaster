@@ -78,10 +78,14 @@ The repository has two parts:
   crates (private, `github.com/yutamago/ffx-rust`, pinned in `Cargo.toml`).
 - `mod/`: `yuta.demaster`, the Fahrenheit mod (C#, .NET 10,
   `Fahrenheit.Sdk/1.0.0-alpha12`).
+- `studio/`: `ffx-music-studio`, FFX Music Studio, a player and editor for
+  the PS2 music of your disc on the converter's sound driver
+  (`docs/studio.md`).
 
 ```bash
 cargo build --release -p demaster              # Linux build: target/release/demaster
 tools/build-windows.sh                         # demaster.exe via cargo-xwin (Linux/WSL)
+tools/build-studio-windows.sh                  # ffx-music-studio.exe the same way
 dotnet build -c Release ffx-demaster.slnx      # mod/artifacts/deploy/rel/mods/yuta.demaster/
 dotnet run tools/package.cs -- yuta.demaster.zip   # the release zip
 cargo test -p demaster                         # config tests, incl. that mod/ knows every setting
