@@ -46,7 +46,8 @@ Plan and status: `docs/plan.md`. What differs: `docs/differences.md`.
 - `disc.rs`: reads the ISO, names files with the PC's tables, unpacks
   (`docs/disc.md`).
 - `phyretex.rs`: writes a `*.dds.phyre` (ARGB8, any size) from an HD texture
-  as template. PS2 textures go in at PS2 size, uncompressed (user decision).
+  as template. PS2 textures go in at PS2 size, uncompressed (user decision),
+  with a full mip chain when the HD texture has one (`mip_chain`).
 - `ps2chr.rs`, `bake.rs`, `chrjob.rs`: character textures. Each HD triangle is
   matched to its PS2 twin by position and painted with the PS2 texels.
 - `gsmem.rs`, `ps2map.rs`, `mapjob.rs`: field and battle map textures,
@@ -71,6 +72,8 @@ Plan and status: `docs/plan.md`. What differs: `docs/differences.md`.
   `demaster music <iso> <vbf> <out> all|<id|name>`, `demaster music-bank`.
 - `bgjob.rs`: 2D-room background layers (`docs/screen.md`).
   `demaster backgrounds <iso> <vbf> <out> all|<map>`.
+- `shaderjob.rs`, `dxbc.rs`: the character pixel shaders with the PS2 light
+  falloff (`render.lighting`; DXBC token walk and checksum, `docs/render.md`).
 - Output layout: `<out>/efl/x/<archive path>` (Fahrenheit's file loader).
 - `config.rs` (`demaster.toml`, defaults in `converter/demaster.toml`),
   `jobs.rs` (Job trait + registry: new jobs go in `jobs::registry()`),
