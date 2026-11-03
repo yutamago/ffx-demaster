@@ -50,6 +50,11 @@ Plan and status: `docs/plan.md`. What differs: `docs/differences.md`.
   with a full mip chain when the HD texture has one (`mip_chain`).
 - `ps2chr.rs`, `bake.rs`, `chrjob.rs`: character textures. Each HD triangle is
   matched to its PS2 twin by position and painted with the PS2 texels.
+- `chralpha.rs`: character materials and texture alpha. The PS2 blended every
+  character polygon by texture alpha; materials (or segments) that sample
+  see-through PS2 texels get the `UATFOPQ` (alpha to coverage) twin of their
+  shader variant and a low `AlphaThreshold`
+  (`docs/models.md`, "Alpha"; `demaster materials-debug`).
 - `gsmem.rs`, `ps2map.rs`, `mapjob.rs`: field and battle map textures,
   cut out of an emulated PS2 GS memory by the HD texture names
   (`docs/maps.md`; `demaster maps <iso> <vbf> <out> all|<map|area>...`).
