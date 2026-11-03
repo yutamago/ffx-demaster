@@ -1,0 +1,207 @@
+# Comparison scenes for tools/compare/compare.py (docs/compare.md).
+#
+# One [[screen]] per PC replay (tools/replays/<replay>.txt, run through
+# tools/calllist). `state` is the PCSX2 save state it starts from
+# (C:\_workspaces\pcsx2\sstates\compare\<state>.p2s, made by
+# tools/compare/states.txt); `ps2` is the pcsx2ctl script from there, with
+# `shot $OUT\<name>.png` for each PS2 frame. `pairs` maps a PS2 shot to the
+# PC shot of the replay (`$OUT\<pc>.bmp`) it is compared with.
+#
+# PS2 pad: cross confirms (PAL), triangle opens the menu. The PC replays
+# press circle to confirm (the PC's bindings).
+#
+# `regions`: name = [x, y, w, h] in the PS2 frame (512x416), for the
+# per-region numbers of the 2D screens.
+
+[[screen]]
+replay = "ui-mainmenu"
+state = "field-cdsp0000"
+ps2 = """
+press triangle 4 60
+shot $OUT\\main.png
+"""
+pairs = { main = "main-3-ps2-43" }
+[screen.regions]
+help = [0, 0, 512, 32]
+party = [0, 36, 336, 120]
+options = [336, 36, 176, 216]
+footer = [0, 352, 336, 64]
+
+[[screen]]
+replay = "ui-items"
+state = "field-cdsp0000"
+ps2 = """
+press triangle 4 60
+press down 4 15
+press cross 4 40
+wait 20
+shot $OUT\\items.png
+"""
+pairs = { items = "items-3-ps2-43" }
+[screen.regions]
+help = [0, 0, 512, 32]
+bar = [0, 32, 512, 48]
+list = [0, 80, 512, 336]
+
+[[screen]]
+replay = "ui-abilities"
+state = "field-cdsp0000"
+ps2 = """
+press triangle 4 60
+press down 4 15
+press down 4 15
+press cross 4 40
+press cross 4 40
+wait 20
+shot $OUT\\abilities.png
+"""
+pairs = { abilities = "abil-3-ps2-43" }
+[screen.regions]
+help = [0, 0, 512, 32]
+party = [0, 32, 512, 56]
+list = [0, 88, 512, 328]
+
+[[screen]]
+replay = "ui-overdrive"
+state = "field-cdsp0000"
+ps2 = """
+press triangle 4 60
+press down 4 15
+press down 4 15
+press down 4 15
+press cross 4 40
+wait 20
+press cross 4 40
+wait 20
+shot $OUT\\overdrive.png
+"""
+pairs = { overdrive = "od-3-ps2-43" }
+[screen.regions]
+help = [0, 0, 512, 32]
+party = [0, 32, 512, 56]
+body = [0, 88, 512, 328]
+
+[[screen]]
+replay = "ui-status-ps2"
+state = "field-cdsp0000"
+ps2 = """
+press triangle 4 60
+press down 4 15
+press down 4 15
+press down 4 15
+press down 4 15
+press cross 4 40
+press cross 4 40
+wait 30
+shot $OUT\\status.png
+"""
+pairs = { status = "status-3-ps2-43" }
+[screen.regions]
+help = [0, 0, 512, 32]
+party = [0, 32, 512, 56]
+face = [0, 88, 128, 128]
+stats = [0, 216, 256, 200]
+right = [256, 88, 256, 328]
+
+[[screen]]
+replay = "ui-config"
+state = "field-cdsp0000"
+ps2 = """
+press triangle 4 60
+press down 4 15
+press down 4 15
+press down 4 15
+press down 4 15
+press down 4 15
+press cross 4 40
+wait 20
+shot $OUT\\config.png
+"""
+pairs = { config = "config-3-ps2-43" }
+[screen.regions]
+help = [0, 0, 512, 32]
+rows = [0, 32, 512, 384]
+
+[[screen]]
+replay = "ui-equip"
+state = "field-kami0100"
+ps2 = """
+press triangle 4 60
+press down 4 15
+press down 4 15
+press down 4 15
+press down 4 15
+press cross 4 40
+press cross 4 40
+wait 20
+shot $OUT\\equip.png
+press cross 4 40
+wait 20
+shot $OUT\\equip-list.png
+"""
+pairs = { equip = "equip-3-ps2-43", equip-list = "equip-6-list-ps2-43" }
+[screen.regions]
+help = [0, 0, 512, 32]
+party = [0, 32, 512, 56]
+slots = [0, 88, 512, 112]
+lists = [0, 200, 512, 216]
+
+[[screen]]
+replay = "ui-customize"
+state = "field-kami0100"
+ps2 = """
+press triangle 4 60
+press down 4 15
+press down 4 15
+press down 4 15
+press down 4 15
+press down 4 15
+press down 4 15
+press down 4 15
+press down 4 15
+press cross 4 40
+wait 30
+press down 4 15
+press down 4 15
+press down 4 15
+wait 20
+shot $OUT\\customize.png
+press cross 4 40
+wait 30
+press down 4 15
+wait 20
+shot $OUT\\customize-add.png
+"""
+pairs = { customize = "cust-3-ps2-43", customize-add = "cust-6-add-ps2-43" }
+[screen.regions]
+help = [0, 0, 512, 32]
+left = [0, 32, 256, 384]
+right = [256, 32, 256, 384]
+
+[[screen]]
+replay = "compare-title"
+state = "title"
+ps2 = """
+wait 50
+shot $OUT\\title.png
+"""
+pairs = { title = "title-2-43" }
+[screen.regions]
+banner = [0, 0, 512, 208]
+logo = [0, 232, 256, 128]
+menu = [256, 232, 256, 128]
+bar = [0, 360, 512, 56]
+
+[[screen]]
+replay = "compare-battle-kami"
+state = "battle-kami"
+ps2 = """
+wait 30
+shot $OUT\\battle.png
+"""
+pairs = { battle = "btl-3-ps2-43" }
+[screen.regions]
+help = [0, 0, 512, 32]
+ctb = [432, 32, 80, 216]
+command = [0, 312, 160, 104]
+party = [160, 336, 352, 80]

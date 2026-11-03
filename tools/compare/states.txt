@@ -1,0 +1,62 @@
+# pcsx2ctl script: makes the PS2 save states of tools/compare/scenes.toml
+# (docs/compare.md) from a fresh boot, with the memory card of setup.py
+# (PC saves 1 and 5 as PS2 saves). Run:
+#   tools/compare/pcsx2.sh start
+#   tools/compare/pcsx2.sh ctl run '<Windows path of this file>'
+#   tools/compare/pcsx2.sh stop
+# States land in C:\_workspaces\pcsx2\sstates\compare\<name>.p2s.
+# 0x003194d0 is the PS2 g_SaveData (PC 0x0112ca90): +0 the map (u16).
+#
+# The opening (map 0x15d), Start: the title (map 0x17)
+waitfor 0x003194d0 5d01 6000
+pressuntil start 0x003194d0 1700 40
+# the menu shows no cursor until a first press, which only brings the
+# cursor (on Neues Spiel); the second moves it to Laden (Load), where the
+# PC's title has it with saves present
+wait 200
+press down 4 50
+press down 4 30
+keep title
+# Laden, memory card slot 1: the save list (newest first: file 06 = slot 5)
+press cross 4 100
+press cross 4 250
+keep loadlist
+# file 06: Thunder Plains, agency (kami0100, map 0x107)
+press cross 4 20
+waitfor 0x003194d0 0701 3000
+wait 500
+keep field-kami0100
+# out of the door, and about until a random encounter (field 34 kami00,
+# group 0, formation 1 when this was made: PS2 0x00318c76.. reads 22 00 00 01;
+# compare-battle-kami.txt starts the same battle on the PC)
+press down 120 0
+press down 120 60
+keep field-kami-outside
+# (random: when the waitfor fails, load field-kami-outside and walk on by
+# hand, then `keep battle-kami` once the command window is up)
+press down 150 0
+press right 100 0
+press left 100 0
+press right 100 0
+press left 100 0
+press right 100 0
+read 0x00318c76 4
+waitfor 0x00318c76 22000001 50
+wait 250
+keep battle-kami
+# file 02: the salvage ship deck (cdsp0000, map 0x47). From the title state,
+# not loadlist: loading a state re-inserts the memory card, and the list then
+# reports no card.
+state title
+wait 30
+press cross 4 100
+press cross 4 250
+press up 4 15
+press up 4 15
+press up 4 15
+press up 4 15
+press cross 4 20
+waitfor 0x003194d0 4700 3000
+# the field takes no menu input for a while after the map is up
+wait 500
+keep field-cdsp0000

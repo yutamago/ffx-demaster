@@ -1,0 +1,19 @@
+# The title screen for tools/compare (docs/compare.md): boot, Start once the
+# opening (map 0x15d) runs, then the title menu (map 0x17) at its event's
+# count 108, as ffx-rust's boot.txt (4); `render.aspect`'s 4:3 write and a
+# shot. Give the converter's ui output (efl/x) as the mod (ui.title: the PS2
+# title layers).
+waitfor 0x0112ca90:4 5c011700 ffffffff 3000
+lockstep on
+pin
+waitfor 0x0112ca90:4 5d015c01 ffffffff 3000
+waitfor 0x01325d94:4 00000000 c0ffffff 600
+wait 30
+press start 3 0
+waitfor 0x0112ca90:4 17005d01 ffffffff 600
+waitfor 0x01325d94:4 00000000 c0ffffff 600
+waitfor 0x01325d94:4 40000000 c0ffffff 600
+shotwhen 0x01325d94:4 6c000000 fcffffff 600 $OUT\title-1.bmp
+write 0x00c34154 abaaaa3f
+wait 2
+shot $OUT\title-2-43.bmp

@@ -1,0 +1,28 @@
+# The battle command window for tools/compare (docs/compare.md): the PS2
+# state battle-kami is a random encounter outside the Thunder Plains agency
+# from save 5, battle field 34 (kami00), group 0, formation 1 (read in the
+# PS2's memory: PS2 0x00318c76 u16 field, +2 group, +3 formation, +4 the
+# field's name, = PC 0x0112c256). The same battle here, then the main
+# command window drawn the PS2 way through calllist as in
+# ui-battle-main.txt (give the converter's ui output as the mod).
+load direct 5 kami0100 lockstep
+lockstep on
+pin
+wait 10
+battle 34 0 1
+waitfor 0x0112a8e0:1 01 ff 4000
+wait 60
+shot $OUT\btl-1-hd.bmp
+@base
+@alloc T 4096
+@thunk T
+@alloc N 4096
+write {N} 2f4646585f446174612f47616d65446174612f505333446174612f6d656e755f75732f44334431312f70733277696e2e6464732e706879726500
+call 0x006651d0 {=N}
+wait 20
+@ps2btl 0 T centred ps2cursor N
+wait 1
+shot $OUT\btl-2-ps2.bmp
+write 0x00c34154 abaaaa3f
+wait 2
+shot $OUT\btl-3-ps2-43.bmp

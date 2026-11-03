@@ -1,0 +1,19 @@
+[package]
+name = "pcsx2ctl"
+version = "0.1.0"
+edition = "2024"
+description = "Drives a running PCSX2 for the PS2 side of tools/compare: PINE, keys, screenshots"
+
+[dependencies]
+png = "0.17"
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.59", features = [
+    "Win32_Foundation",
+    "Win32_Graphics_Gdi",
+    "Win32_Storage_Xps",
+    "Win32_UI_WindowsAndMessaging",
+    "Win32_UI_Input_KeyboardAndMouse",
+] }
+
+[workspace]
