@@ -1,10 +1,9 @@
 # ui.menus = ps2, main menu: what mod/MainMenuPatches.cs draws, through tools/calllist (the @ lines
 # are its commands; docs/ui.md, "The main menu"). Needs the converter's ui output as a mod (the
-# PS2 atlas ps2win). From save slot 1 (salvage ship deck): open the menu, shoot the HD draw, load
-# the PS2 atlas (PhyreScene_loadMenuTexture), point the main draw, the option window and the help
-# bar at call lists of the PS2 draw and the background at the PS2 gradient, shoot again; the 4:3
-# write (render.aspect) and a shot; then into Items and Abilities (HD lists over the PS2
-# background: their PS2 draws are not ported).
+# PS2 atlas ps2win, the PS2 fonts ps2fnt). From save slot 1 (salvage ship deck): open the menu,
+# shoot the HD draw, load the PS2 atlas and fonts (PhyreScene_loadMenuTexture), point the main
+# draw, the option window and the help bar at call lists of the PS2 draw and the background at the
+# PS2 gradient, shoot again; the 4:3 write (render.aspect) and a shot.
 load direct 1 cdsp0000 lockstep
 lockstep on
 pin
@@ -16,10 +15,13 @@ shot $OUT\main-1-hd.bmp
 @alloc N 4096
 write {N} 2f4646585f446174612f47616d65446174612f505333446174612f6d656e755f75732f44334431312f70733277696e2e6464732e706879726500
 call 0x006651d0 {=N}
+@alloc F 4096
+write {F} 2f4646585f446174612f47616d65446174612f505333446174612f6d656e755f75732f44334431312f707332666e742e6464732e706879726500
+call 0x006651d0 {=F}
 wait 20
-@alloc M 4096
-@alloc C 4096
-@alloc B 4096
+@alloc M 65536
+@alloc C 65536
+@alloc B 65536
 @alloc G 4096
 @thunk M
 @thunk C
@@ -28,14 +30,9 @@ wait 20
 @alloc S 4096
 @protect S 0x008f5c00 128
 @ps2bg G
-@ps2menu M C B N
+@ps2menu M C B N F
 wait 2
 shot $OUT\main-2-ps2.bmp
 write 0x00c34154 abaaaa3f
 wait 2
 shot $OUT\main-3-ps2-43.bmp
-write 0x00c34154 398ee33f
-press down 4 15
-press circle 4 40
-wait 10
-shot $OUT\main-4-items.bmp

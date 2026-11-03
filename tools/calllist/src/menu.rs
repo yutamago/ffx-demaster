@@ -170,8 +170,9 @@ pub fn od_tab_calls(cx: &mut Ctx, name: u32) -> ffx_harness::Result<Vec<(u32, Ve
     Ok(v)
 }
 
-pub fn build(cx: &mut Ctx, scratch: [u32; 3], ps2_name: u32) -> ffx_harness::Result<Built> {
+pub fn build(cx: &mut Ctx, scratch: [u32; 3], ps2_name: u32, fnt_name: u32) -> ffx_harness::Result<Built> {
     let (slot, orig) = atlas_slot(cx)?;
+    let fo = Fonts { slot, win: ps2_name, fnt: fnt_name };
     let dum75 = cx.r32(0x025d_16ac)?;
 
     // ---- main draw (PS2 0x0024a4a8)
@@ -224,18 +225,15 @@ pub fn build(cx: &mut Ctx, scratch: [u32; 3], ps2_name: u32) -> ffx_harness::Res
         m.c(FONT_1612, &[name, (x + namestr.0) as u32, (y + namestr.1) as u32, colour]);
         m.c(SHAPE_XY, &[0x21, (x + hptex.0) as u32, (y + hptex.1) as u32]);
         let (hp, hpm) = (cx.call(0x008a_98c0, &[chr as u32])?, cx.call(0x008a_9990, &[chr as u32])?);
-        let s1 = m.string(&format!("{hp:5}/{hpm:5}"));
-        let k = 1.0;
-        m.c(STR_S, &[s1, f((x + hpstr.0) as f32), f((y + hpstr.1) as f32), 0x25, f(k), 0]);
+        // PS2 0x001f6500: font S, colour 0x25
+        font_s(&mut m, &fo, &format!("{hp:5}/{hpm:5}"), x + hpstr.0, y + hpstr.1, 0x25);
         m.c(SHAPE_XY, &[0x22, (x + mptex.0) as u32, (y + mptex.1) as u32]);
         let (mp, mpm) = (cx.call(0x008a_9970, &[chr as u32])?, cx.call(0x008a_99b0, &[chr as u32])?);
-        let s2 = m.string(&format!("{mp:4}/{mpm:4}"));
-        m.c(STR_S, &[s2, f((x + mpstr.0) as f32), f((y + mpstr.1) as f32), 0x25, f(k), 0]);
+        font_s(&mut m, &fo, &format!("{mp:4}/{mpm:4}"), x + mpstr.0, y + mpstr.1, 0x25);
         m.c(SHAPE_XY, &[0x3d, (x + slv.0) as u32, (y + slv.1) as u32]);
         let sp = cx.call(0x008a_9b80, &[chr as u32])?;
-        // PS2 0x001f5e88(sp, x + spstr.x + slv.x, y + slv.y + spstr.y, 0): "%d" in 12-pixel cells
-        // ending at x + 2 (0x001f5f58)
-        m.c(DIGIT_R, &[sp, f((x + spstr.0 + slv.0 + 2) as f32), f((y + slv.1 + spstr.1) as f32), 0, f(SX), f(SY)]);
+        // PS2 0x001f5e88(sp, x + spstr.x + slv.x, y + slv.y + spstr.y, 0): font M
+        value_m(&mut m, &fo, i64::from(sp), x + spstr.0 + slv.0, y + slv.1 + spstr.1, 0);
         let (nxp, nyp) = (x + namestr.0, y + namestr.1);
         if choice == chr {
             cursor(&mut m, nxp, nyp, dum75);
@@ -271,9 +269,10 @@ pub fn build(cx: &mut Ctx, scratch: [u32; 3], ps2_name: u32) -> ffx_harness::Res
     let gilshape2 = point(cx, "pos_gilshape2")?;
     eprintln!("footer: gil {gilstr:?} time {timestr:?} shapes {gilshape:?} {gilshape2:?}");
     let gil = cx.call(0x0078_4e80, &[])?;
-    m.c(DIGIT_R, &[gil, f((gilstr.0 + 2) as f32), f(gilstr.1 as f32), 0, f(SX), f(SY)]);
+    // PS2 0x001f63c0: font S, colour 0x25; the time PS2 0x0024ad28
+    value_s(&mut m, &fo, i64::from(gil), gilstr.0, gilstr.1, 0x25);
     let t = cx.call(0x008a_9c50, &[])?;
-    m.c(TIMER, &[t, f(timestr.0 as f32), f(timestr.1 as f32), 0x25, if t & 1 != 0 { 0x25 } else { 1 }]);
+    play_time(&mut m, &fo, t, timestr.0, timestr.1, 0x25, if t & 1 != 0 { 0x25 } else { 1 });
     m.c(SHAPE_XY, &[0xd5, gilshape.0 as u32, gilshape.1 as u32]);
     m.c(SHAPE_XY, &[0xd6, (gilshape.0 + gilshape2.0) as u32, (gilshape.1 + gilshape2.1) as u32]);
     let r = |cx: &mut Ctx, a: u32| cx.r16(a);
@@ -344,7 +343,10 @@ pub fn build(cx: &mut Ctx, scratch: [u32; 3], ps2_name: u32) -> ffx_harness::Res
         let helpstr = pt(cx, 0x025d_160a)?;
         h.c(PLATE_LR, &[0x45, 0x46, sub.0 as u32, sub.1 as u32, sub.2 as u32, cx.r32(0x025d_1628)?, cx.r32(0x025d_1624)?]);
         h.c(PLATE_LR, &[6, 7, help.0 as u32, help.1 as u32, help.2 as u32, cx.r32(0x025d_1614)?, cx.r32(0x025d_1610)?]);
-        h.c(SHAPE_XY, &[0x3e, (sub.0 + 0x50) as u32, sub.1 as u32]);
+        // shape 0x3e, all parts (the PC's TOAdpEasyShapeXYWHC2 draws only the last, the label)
+        for (fun, a) in help_label(cx, sub.0 + 0x50, sub.1)? {
+            h.c(fun, &a);
+        }
         let msg = cx.r32(0x0184_1c00)?;
         eprintln!("help: sub {sub:?} help {help:?} str {helpstr:?} msg {msg:#x}");
         if msg != 0 {
@@ -358,6 +360,14 @@ pub fn build(cx: &mut Ctx, scratch: [u32; 3], ps2_name: u32) -> ffx_harness::Res
     let off = recs.windows(4).position(|w| w == want).expect("no window draws the help bar") as u32;
     let help_window = cx.abs(0x0184_0900) + off;
     Ok(Built { main: m, cmd: c, help: h, cmd_window, help_window })
+}
+
+/// Shape 0x3e as the PS2 draws it (mod MainMenuPatches.help_label): every part of the meswin
+/// layout entry (FFX.exe 0x00c5b460) through TOMkpShapePartIndexXYWHC2 with w = h = 0.
+pub fn help_label(cx: &mut Ctx, x: i32, y: i32) -> ffx_harness::Result<Vec<(u32, Vec<u32>)>> {
+    let off = cx.r32(0x00c5_b460 + 4 + 4 * 0x3e)?;
+    let n = cx.r32(0x00c5_b460 + off)?;
+    Ok((0..n).map(|k| (SHAPE_PART, vec![0x3e, k, f(x as f32), f(y as f32), 0, 0, GREY, GREY])).collect())
 }
 
 /// The list as the thunk reads it (records 3 are { 3, 1, f }); function VAs rebased by `delta`.
@@ -378,4 +388,83 @@ pub fn encode(list: &[(u32, Vec<u32>)], delta: u32) -> String {
     }
     w(0);
     s
+}
+
+/// The PS2 fonts M and S as mod/Ps2Menu.cs draws them: glyph quads of meswin shape 0 with
+/// explicit UVs while the meswin name slot holds the ps2fnt name (converter uijob::PS2_FONT:
+/// 1024 x 1024, tiles of 256 x 256, faces 0..7 then shadows 0..7; glyph i of font M at (1, 1)
+/// in the 16 x 16 cell (i % 16, i / 16), of font S in (i % 16, 6 + i / 16)).
+#[derive(Clone, Copy)]
+pub struct Fonts {
+    /// the meswin name slot (absolute)
+    pub slot: u32,
+    /// what the slot holds around the font draws (the ps2win name inside ported draws)
+    pub win: u32,
+    /// the ps2fnt name (absolute)
+    pub fnt: u32,
+}
+
+const SHAPE_UV: u32 = 0x0090_3ee0; // TOMkpShapeXYWHUVC2
+
+fn glyphs(l: &mut List, fo: &Fonts, s: &str, mut x: i32, y: i32, colour: u32, m: bool) {
+    l.set(fo.slot, fo.fnt);
+    let (face, shade) = ((colour & 7) as i32, ((colour >> 4) & 7) as i32);
+    let (w, h, adv) = if m { (10, 12, 12) } else { (8, 10, 10) };
+    for ch in s.bytes() {
+        let i = i32::from(ch) - 0x20;
+        if i > 0 && i < 0x60 {
+            let u = 16 * (i % 16) + 1;
+            let v = 16 * (if m { 0 } else { 6 } + i / 16) + 1;
+            for pass in 0..2 {
+                let k = if pass == 0 { 8 + shade } else { face };
+                let (tu, tv) = ((256 * (k % 4) + u) as f32, (256 * (k / 4) + v) as f32);
+                let d = if pass == 0 { 1 } else { 0 };
+                l.c(SHAPE_UV, &[
+                    0,
+                    f((x + d) as f32),
+                    f((y + d) as f32),
+                    f(w as f32),
+                    f(h as f32),
+                    f(tu / 1024.0),
+                    f(tv / 1024.0),
+                    f((tu + w as f32) / 1024.0),
+                    f((tv + h as f32) / 1024.0),
+                    GREY,
+                    GREY,
+                ]);
+            }
+        }
+        x += adv;
+    }
+    l.set(fo.slot, fo.win);
+}
+
+/// Font M text (PS2 0x001f5ff8).
+pub fn font_m(l: &mut List, fo: &Fonts, s: &str, x: i32, y: i32, colour: u32) {
+    glyphs(l, fo, s, x, y, colour, true);
+}
+
+/// Font S text (PS2 0x001f6630).
+pub fn font_s(l: &mut List, fo: &Fonts, s: &str, x: i32, y: i32, colour: u32) {
+    glyphs(l, fo, s, x, y, colour, false);
+}
+
+/// "%d" in font M, the last cell ending at x + 2 (PS2 0x001f5f58).
+pub fn value_m(l: &mut List, fo: &Fonts, v: i64, x: i32, y: i32, colour: u32) {
+    let s = v.to_string();
+    font_m(l, fo, &s, x + 2 - 12 * s.len() as i32, y, colour);
+}
+
+/// "%d" in font S, the last cell ending at x + 2 (PS2 0x001f6408).
+pub fn value_s(l: &mut List, fo: &Fonts, v: i64, x: i32, y: i32, colour: u32) {
+    let s = v.to_string();
+    font_s(l, fo, &s, x + 2 - 10 * s.len() as i32, y, colour);
+}
+
+/// The play time (PS2 0x0024ad28, seconds): minutes at x - 18, ":" at x - 28, hours at x - 58.
+pub fn play_time(l: &mut List, fo: &Fonts, t: u32, x: i32, y: i32, colour: u32, colon: u32) {
+    let (hours, minutes) = ((t / 3600).min(999), t / 60 % 60);
+    font_s(l, fo, &format!("{minutes:02}"), x - 18, y, colour);
+    font_s(l, fo, ":", x - 28, y, colon);
+    font_s(l, fo, &format!("{hours:3}"), x - 58, y, colour);
 }

@@ -4,7 +4,7 @@
 //! 0x00250978 for 0x008c64a0). The same arithmetic as the C#; the game's lookups are called at the
 //! frame boundary. Addresses are ffx.sym VAs; evidence in docs/ui.md ("The Items and Abilities
 //! screens").
-use crate::menu::{Ctx, List, cursor_parts, f};
+use crate::menu::{Ctx, Fonts, List, cursor_parts, f, font_s, value_m, value_s};
 
 const BOX_C2: u32 = 0x008f3db0;
 const BOX_RGBA: u32 = 0x008fb150;
@@ -14,8 +14,6 @@ const SHAPE_XY: u32 = 0x00903a10;
 const SHAPE_XYC2: u32 = 0x00903a50;
 const SHAPE_XYWH: u32 = 0x00903b70;
 const FONT_1612: u32 = 0x00901cb0;
-const STR_S: u32 = 0x00901660;
-const DIGIT_R: u32 = 0x009055c0;
 const ICON: u32 = 0x008e6af0;
 const SCISSOR: u32 = 0x008fdee0;
 const OPEN_PKT: u32 = 0x008bef30;
@@ -45,6 +43,7 @@ struct Cx<'a, 'b> {
     cx: &'a mut Ctx<'b>,
     out: u32, // scratch for out parameters (absolute)
     dum75: u32,
+    fo: Fonts,
 }
 
 impl Cx<'_, '_> {
@@ -94,11 +93,13 @@ fn icon_name(l: &mut List, icon: u32, name: u32, x: i32, y: i32, colour: u32) {
     l.c(FONT_1612, &[name, (x + 29) as u32, (y + 1) as u32, colour]);
 }
 
-fn value(l: &mut List, v: u32, x: i32, y: i32, grey: u32) {
-    l.c(DIGIT_R, &[v, f((x + 2) as f32), f(y as f32), grey, f(0.78), f(1.0)]);
+/// PS2 0x00226c80 -> 0x001f5f58: font M, colour 0 or 1 (grey).
+fn value(l: &mut List, fo: &Fonts, v: u32, x: i32, y: i32, grey: u32) {
+    value_m(l, fo, i64::from(v), x, y, grey);
 }
 
 fn row(cx: &mut Cx, l: &mut List, w: &[u8], x: i32, y: i32, idx: i32) -> ffx_harness::Result<()> {
+    let fo = cx.fo;
     let idx = idx + 2 * i16_at(w, 0x32);
     let y = y - i16_at(w, 0x46) / 128;
     if idx < 0 {
@@ -133,7 +134,7 @@ fn row(cx: &mut Cx, l: &mut List, w: &[u8], x: i32, y: i32, idx: i32) -> ffx_har
             let (rec, name) = cx.com(id, 0x0079_a4b0)?;
             let icon = cx.byte(rec + 0x14)?;
             icon_name(l, icon, name, x, y, dim);
-            value(l, n, x + 211, y + 6, dim);
+            value(l, &fo, n, x + 211, y + 6, dim);
         }
     } else if e[2] == 1 {
         plate(cx, l, x, y, 0x12)?;
@@ -143,7 +144,7 @@ fn row(cx: &mut Cx, l: &mut List, w: &[u8], x: i32, y: i32, idx: i32) -> ffx_har
         let ply = cx.cx.call(0x0079_0a90, &[id])?;
         let mp = cx.byte(ply + 0x25)?;
         if mp != 0 {
-            value(l, mp, x + 211, y + 6, dim);
+            value(l, &fo, mp, x + 211, y + 6, dim);
         }
     } else if e[2] == 2 {
         plate(cx, l, x, y, 2)?;
@@ -264,18 +265,17 @@ fn ability(cx: &mut Cx, l: &mut List) -> ffx_harness::Result<()> {
     let (hp, hpm) = (cx.cx.call(0x008a_98c0, &[chr])?, cx.cx.call(0x008a_9990, &[chr])?);
     let (mp, mpm) = (cx.cx.call(0x008a_9970, &[chr])?, cx.cx.call(0x008a_99b0, &[chr])?);
     l.c(SHAPE_XY, &[0x21, (x + hptex.0) as u32, (y + hptex.1) as u32]);
-    let s1 = l.string(&format!("{hp:5}/{hpm:5}"));
-    l.c(STR_S, &[s1, f((x + hpstr.0) as f32), f((y + hpstr.1) as f32), 0x25, f(1.0), 0]);
+    let fo = cx.fo;
+    font_s(l, &fo, &format!("{hp:5}/{hpm:5}"), x + hpstr.0, y + hpstr.1, 0x25);
     l.c(SHAPE_XY, &[0x22, (x + mptex.0) as u32, (y + mptex.1) as u32]);
-    let s2 = l.string(&format!("{mp:4}/{mpm:4}"));
-    l.c(STR_S, &[s2, f((x + mpstr.0) as f32), f((y + mpstr.1) as f32), 0x25, f(1.0), 0]);
+    font_s(l, &fo, &format!("{mp:4}/{mpm:4}"), x + mpstr.0, y + mpstr.1, 0x25);
     l.c(BOX_RGBA, &[0, (y + 33) as u32, 512, 3, 0, 0, 0, 0x80]);
     let (slv, spstr) = (pt(cx, 0x025d_164e)?, pt(cx, 0x025d_164a)?);
     l.c(SHAPE_XY, &[0x107, (x + slv.0 + 0x68) as u32, (y + slv.1) as u32]);
     let sp = cx.cx.call(0x008a_9b80, &[chr])?;
-    value(l, sp, x + slv.0 + spstr.0, y + slv.1 + spstr.1, 0);
+    value_m(l, &fo, i64::from(sp), x + slv.0 + spstr.0, y + slv.1 + spstr.1, 0);
     let ap = cx.cx.call(0x0078_4e90, &[chr])?.wrapping_sub(cx.cx.call(0x0078_52b0, &[chr])?);
-    value(l, ap, x + slv.0 + 139, y + slv.1 - 13, 0);
+    value_s(l, &fo, i64::from(ap as i32), x + slv.0 + 139, y + slv.1 - 13, 0x25);
     l.c(KICK, &[]);
     l.c(VU1_SYNC, &[]);
     Ok(())
@@ -283,10 +283,10 @@ fn ability(cx: &mut Cx, l: &mut List) -> ffx_harness::Result<()> {
 
 /// Builds the lists; `scratch` = string areas for the three lists, `out` scratch for out
 /// parameters, `name` the PS2 atlas name (written into the meswin slot around each list).
-pub fn build(cx0: &mut Ctx, scratch: [u32; 3], out: u32, name: u32, ability_screen: bool) -> ffx_harness::Result<Items> {
+pub fn build(cx0: &mut Ctx, scratch: [u32; 3], out: u32, name: u32, fnt: u32, ability_screen: bool) -> ffx_harness::Result<Items> {
     let (slot, orig) = crate::menu::atlas_slot(cx0)?;
     let dum75 = cx0.r32(0x025d_16ac)?;
-    let mut cx = Cx { cx: cx0, out, dum75 };
+    let mut cx = Cx { cx: cx0, out, dum75, fo: Fonts { slot, win: name, fnt } };
     let wrap = |l: &mut List, inner: &mut dyn FnMut(&mut List) -> ffx_harness::Result<()>| -> ffx_harness::Result<()> {
         l.set(slot, name);
         inner(l)?;
@@ -328,7 +328,9 @@ pub fn help(cx: &mut Ctx, scratch: u32, name: u32, thunk: u32) -> ffx_harness::R
     let helpstr = (r(cx, 0x025d_160c)?, r(cx, 0x025d_160a)?);
     h.c(PLATE_LR, &[0x45, 0x46, sub.0 as u32, sub.1 as u32, sub.2 as u32, cx.r32(0x025d_1628)?, cx.r32(0x025d_1624)?]);
     h.c(PLATE_LR, &[6, 7, bar.0 as u32, bar.1 as u32, bar.2 as u32, cx.r32(0x025d_1614)?, cx.r32(0x025d_1610)?]);
-    h.c(SHAPE_XY, &[0x3e, (sub.0 + 0x50) as u32, sub.1 as u32]);
+    for (fun, a) in crate::menu::help_label(cx, sub.0 + 0x50, sub.1)? {
+        h.c(fun, &a);
+    }
     let msg = cx.r32(0x0184_1c00)?;
     if msg != 0 {
         h.c(FONT_1612, &[msg, (bar.0 + helpstr.0) as u32, (bar.1 + helpstr.1) as u32, 0]);

@@ -5,15 +5,25 @@
 //!   @set NAME VALUE       NAME = VALUE (absolute)
 //!   @thunk NAME           the call-list thunk (thunk.s) at NAME
 //!   @ps2btl W T [centred] the PS2 battle window draw for window W through thunk T
-//!   @ps2menu M C B NAME   the PS2 main menu (menu.rs) through thunks M, C, B; NAME the atlas name
-//!   @ps2items L S A O NAME [help H] [ability]  the PS2 item / ability list, sub-command bar and (ability)
+//!   @ps2menu M C B NAME FNT  the PS2 main menu (menu.rs) through thunks M, C, B; NAME the atlas
+//!                         name, FNT the PS2 fonts' texture name (ps2fnt)
+//!   @ps2items L S A O NAME FNT [help H] [ability]  the PS2 item / ability list, sub-command bar and (ability)
 //!                         party plate (items.rs) through thunks L, S, A; O scratch for out parameters
+//!   @ps2screen SCREEN O N F T1 [T2 ...]  a main-menu sub-screen (screens.rs: equip, status, config,
+//!                         overdrive, customize) through thunks T1..; O scratch, N / F the ps2win /
+//!                         ps2fnt names
 //! Substitutions in any line: {NAME[+off]} -> the address in ffx.sym terms (what write/call/read
 //! take), {&NAME[+off]} -> its absolute value as 4 LE bytes (hex), {&va:0x...} -> a VA's absolute
 //! value as LE bytes, {=NAME} -> its absolute value as a number (a call argument), {f:1.5} -> f32 LE bytes, {i:-3} -> i32 LE bytes.
 mod btl;
+mod config;
+mod customize;
+mod equip;
 mod items;
 mod menu;
+mod overdrive;
+mod screens;
+mod status;
 
 /// thunk.s assembled (as --32, objcopy -O binary).
 const THUNK: &str = "5589e5565753e8000000005e81c6f50000008b0685c0745d83f80175138b55088b4e0c8b0c0a8b5608890a83c610ebe283f802750d8b4e0c8b5608890a83c610ebd083f803750eff7508ff560883c40483c60cebbd8b5e0489d98d7c8e0485c97408ff3783ef0449ebf4ffd08d249c8d749e08eb9d5b5f5e5d31c0c3";
@@ -154,10 +164,10 @@ fn main() -> ffx_harness::Result<()> {
                 "@ps2menu" => {
                     // @ps2menu MAIN CMD BAR NAME: the main menu as MainMenuPatches draws it; MAIN, CMD,
                     // BAR hold thunks (0x1000 each), NAME the PS2 atlas's name string
-                    let [m, c, b, name] = [1, 2, 3, 4].map(|k| vars[words[k]]);
+                    let [m, c, b, name, fnt] = [1, 2, 3, 4, 5].map(|k| vars[words[k]]);
                     let built = {
                         let mut cx = menu::Ctx { game: &mut game, delta };
-                        menu::build(&mut cx, [m + 0x800, c + 0x800, b + 0x800], name)?
+                        menu::build(&mut cx, [m + 0x8000, c + 0x8000, b + 0x8000], name, fnt)?
                     };
                     for (t, l) in [(m, &built.main), (c, &built.cmd), (b, &built.help)] {
                         for (f, a) in &l.calls {
@@ -174,11 +184,11 @@ fn main() -> ffx_harness::Result<()> {
                     println!("{}", game.command(&format!("write {:#x} {}", built.help_window.wrapping_sub(delta), le(b)))?);
                 }
                 "@ps2items" => {
-                    let [lt, st, at, out, name] = [1, 2, 3, 4, 5].map(|k| vars[words[k]]);
+                    let [lt, st, at, out, name, fnt] = [1, 2, 3, 4, 5, 6].map(|k| vars[words[k]]);
                     let ability = words.contains(&"ability");
                     let built = {
                         let mut cx = menu::Ctx { game: &mut game, delta };
-                        items::build(&mut cx, [lt + 0x800, st + 0x800, at + 0x800], out, name, ability)?
+                        items::build(&mut cx, [lt + 0x8000, st + 0x8000, at + 0x8000], out, name, fnt, ability)?
                     };
                     let mut put = |game: &mut ffx_harness::Game, t: u32, l: &menu::List| -> ffx_harness::Result<()> {
                         for (f, a) in &l.calls {
@@ -204,7 +214,7 @@ fn main() -> ffx_harness::Result<()> {
                         let ht = vars[words[k + 1]];
                         let (h, hw) = {
                             let mut cx = menu::Ctx { game: &mut game, delta };
-                            items::help(&mut cx, ht + 0x800, name, ht)?
+                            items::help(&mut cx, ht + 0x8000, name, ht)?
                         };
                         put(&mut game, ht, &h)?;
                         println!("{}", game.command(&format!("write {:#x} {}", hw.wrapping_sub(delta), le(ht)))?);
@@ -213,6 +223,34 @@ fn main() -> ffx_harness::Result<()> {
                         put(&mut game, at, l)?;
                         // the ability menu record's draw (+4 of 0x00c5a320)
                         println!("{}", game.command(&format!("write {:#x} {}", 0x00c5a324u32, le(at)))?);
+                    }
+                }
+                "@ps2screen" => {
+                    let screen = words[1];
+                    let [out, name, fnt] = [2, 3, 4].map(|k| vars[words[k]]);
+                    let thunks: Vec<u32> = words[5..].iter().map(|w| vars[*w]).collect();
+                    let scratch: Vec<u32> = thunks.iter().map(|t| t + 0x8000).collect();
+                    let (draws, slot, orig) = {
+                        let mut cx = menu::Ctx { game: &mut game, delta };
+                        let (slot, orig) = menu::atlas_slot(&mut cx)?;
+                        let dum75 = cx.r32(0x025d_16ac)?;
+                        let env = screens::Env { out, fo: menu::Fonts { slot, win: name, fnt }, dum75 };
+                        (screens::build(&mut cx, screen, &env, &scratch)?, slot, orig)
+                    };
+                    assert!(draws.len() <= thunks.len(), "{screen}: {} draws, {} thunks", draws.len(), thunks.len());
+                    for (d, &t) in draws.into_iter().zip(&thunks) {
+                        let mut calls = vec![(2, vec![slot, name])];
+                        calls.extend(d.list.calls.iter().cloned());
+                        calls.push((2, vec![slot, orig]));
+                        for (f, a) in &calls {
+                            println!("  call {f:#x} {a:x?}");
+                        }
+                        for (a, s) in &d.list.strings {
+                            let hex: String = s.iter().map(|x| format!("{x:02x}")).collect();
+                            game.command(&format!("write {:#x} {hex}", a.wrapping_sub(delta)))?;
+                        }
+                        game.command(&format!("write {:#x} {}", (t + 0x100).wrapping_sub(delta), menu::encode(&calls, delta)))?;
+                        println!("{}", game.command(&format!("write {:#x} {}", d.target, le(t)))?);
                     }
                 }
                 "@protect" => {
