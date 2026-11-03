@@ -170,14 +170,15 @@ fn main() -> ffx_harness::Result<()> {
                         menu::build(&mut cx, [m + 0x8000, c + 0x8000, b + 0x8000], name, fnt)?
                     };
                     for (t, l) in [(m, &built.main), (c, &built.cmd), (b, &built.help)] {
-                        for (f, a) in &l.calls {
+                        let calls = menu::expand_shapes(&mut menu::Ctx { game: &mut game, delta }, &l.calls)?;
+                        for (f, a) in &calls {
                             println!("  call {f:#x} {a:x?}");
                         }
                         for (a, s) in &l.strings {
                             let hex: String = s.iter().map(|x| format!("{x:02x}")).collect();
                             game.command(&format!("write {:#x} {hex}", a.wrapping_sub(delta)))?;
                         }
-                        game.command(&format!("write {:#x} {}", (t + 0x100).wrapping_sub(delta), menu::encode(&l.calls, delta)))?;
+                        game.command(&format!("write {:#x} {}", (t + 0x100).wrapping_sub(delta), menu::encode(&calls, delta)))?;
                     }
                     println!("{}", game.command(&format!("write {:#x} {}", 0x00c5b2b4u32, le(m)))?);
                     println!("{}", game.command(&format!("write {:#x} {}", built.cmd_window.wrapping_sub(delta), le(c)))?);
@@ -190,15 +191,16 @@ fn main() -> ffx_harness::Result<()> {
                         let mut cx = menu::Ctx { game: &mut game, delta };
                         items::build(&mut cx, [lt + 0x8000, st + 0x8000, at + 0x8000], out, name, fnt, ability)?
                     };
-                    let mut put = |game: &mut ffx_harness::Game, t: u32, l: &menu::List| -> ffx_harness::Result<()> {
-                        for (f, a) in &l.calls {
+                    let put = |game: &mut ffx_harness::Game, t: u32, l: &menu::List| -> ffx_harness::Result<()> {
+                        let calls = menu::expand_shapes(&mut menu::Ctx { game: &mut *game, delta }, &l.calls)?;
+                        for (f, a) in &calls {
                             println!("  call {f:#x} {a:x?}");
                         }
                         for (a, s) in &l.strings {
                             let hex: String = s.iter().map(|x| format!("{x:02x}")).collect();
                             game.command(&format!("write {:#x} {hex}", a.wrapping_sub(delta)))?;
                         }
-                        game.command(&format!("write {:#x} {}", (t + 0x100).wrapping_sub(delta), menu::encode(&l.calls, delta)))?;
+                        game.command(&format!("write {:#x} {}", (t + 0x100).wrapping_sub(delta), menu::encode(&calls, delta)))?;
                         Ok(())
                     };
                     if let Some((w, l)) = &built.list {
@@ -242,6 +244,7 @@ fn main() -> ffx_harness::Result<()> {
                         let mut calls = vec![(2, vec![slot, name])];
                         calls.extend(d.list.calls.iter().cloned());
                         calls.push((2, vec![slot, orig]));
+                        let calls = menu::expand_shapes(&mut menu::Ctx { game: &mut game, delta }, &calls)?;
                         for (f, a) in &calls {
                             println!("  call {f:#x} {a:x?}");
                         }

@@ -75,6 +75,7 @@ const BOX_RGBA: u32 = 0x008fb150; // TOMakePktBoxXYWHRGBA(x, y, w, h, r, g, b, a
 const PLATE_LR: u32 = 0x008f5e90; // (A, B, x, y, w, c0, c1): A stretched c0..c1, B fixed in c1 (PS2 0x001ff2b8)
 const PLATE_RL: u32 = 0x008f5e20; // (A, B, x, y, w, c0, c1): A fixed in c0, B stretched c0..c1 (PS2 0x001ff1e0)
 const SHAPE_XY: u32 = 0x00903a10; // TOMkpShapeXY(id, x, y)
+const SHAPE_XYC2: u32 = 0x00903a50; // TOMkpShapeXYC2(id, x, y, c0, c1)
 const SHAPE_XYWHC2: u32 = 0x00903b70; // TOMkpShapeXYWHC2(id, x, y, w, h, c0, c1)
 const SHAPE_PART: u32 = 0x009034b0; // TOMkpShapePartIndexXYWHC2(id, part, f x, f y, f w, f h, c0, c1)
 const FONT_1612: u32 = 0x00901cb0; // TOMkpBaseMesFont(text, x, y, colour) (PS2 0x001f3810)
@@ -362,12 +363,46 @@ pub fn build(cx: &mut Ctx, scratch: [u32; 3], ps2_name: u32, fnt_name: u32) -> f
     Ok(Built { main: m, cmd: c, help: h, cmd_window, help_window })
 }
 
-/// Shape 0x3e as the PS2 draws it (mod MainMenuPatches.help_label): every part of the meswin
-/// layout entry (FFX.exe 0x00c5b460) through TOMkpShapePartIndexXYWHC2 with w = h = 0.
-pub fn help_label(cx: &mut Ctx, x: i32, y: i32) -> ffx_harness::Result<Vec<(u32, Vec<u32>)>> {
-    let off = cx.r32(0x00c5_b460 + 4 + 4 * 0x3e)?;
-    let n = cx.r32(0x00c5_b460 + off)?;
-    Ok((0..n).map(|k| (SHAPE_PART, vec![0x3e, k, f(x as f32), f(y as f32), 0, 0, GREY, GREY])).collect())
+/// Shape 0x3e as the PS2 draws it (mod MainMenuPatches.help_label): a TOMkpShapeXY call, which
+/// [`expand_shapes`] turns into every part (the PC's own draws only the last).
+pub fn help_label(_cx: &mut Ctx, x: i32, y: i32) -> ffx_harness::Result<Vec<(u32, Vec<u32>)>> {
+    Ok(vec![(SHAPE_XY, vec![0x3e, x as u32, y as u32])])
+}
+
+/// mod Ps2Menu.shape_c2: TOMkpShapeXY / TOMkpShapeXYC2 calls of meswin shapes (ids below 399, not
+/// 199) become one TOMkpShapeXYWHUVC2 per layout part (FFX.exe 0x00c5b460), at (x + dx, y + dy),
+/// w x h, UVs half a texel inside the cell of the 256 x 256 PS2 atlas.
+pub fn expand_shapes(cx: &mut Ctx, calls: &[(u32, Vec<u32>)]) -> ffx_harness::Result<Vec<(u32, Vec<u32>)>> {
+    let table = cx.game.read(0x00c5_b460, 0xe68)?;
+    let rd32 = |o: usize| u32::from_le_bytes(table[o..o + 4].try_into().unwrap()) as usize;
+    let rd16 = |o: usize| u16::from_le_bytes([table[o], table[o + 1]]);
+    let mut out = Vec::with_capacity(calls.len());
+    for (fun, a) in calls {
+        let c2 = *fun == SHAPE_XYC2;
+        let id = a.first().copied().unwrap_or(0);
+        if (*fun != SHAPE_XY && !c2) || id >= 399 || id == 199 {
+            out.push((*fun, a.clone()));
+            continue;
+        }
+        let (x, y) = (a[1] as i32, a[2] as i32);
+        let (c0, c1) = if c2 { (a[3], a[4]) } else { (GREY, GREY) };
+        let e = rd32(4 + 4 * (id as usize % 200));
+        for k in 0..rd32(e) {
+            let p = e + 4 + 12 * k;
+            let (u, v) = (f32::from(table[p]), f32::from(table[p + 1]));
+            let (dx, dy) = (i32::from(table[p + 2] as i8), i32::from(table[p + 3] as i8));
+            let (w, h) = (f32::from(rd16(p + 4)), f32::from(rd16(p + 6)));
+            let (mut u0, mut u1, mut v0, mut v1) = ((u + 0.5) / 256.0, (u + w - 0.5) / 256.0, (v + 0.5) / 256.0, (v + h - 0.5) / 256.0);
+            if rd16(p + 8) == 1 {
+                std::mem::swap(&mut u0, &mut u1);
+            }
+            if rd16(p + 10) == 1 {
+                std::mem::swap(&mut v0, &mut v1);
+            }
+            out.push((SHAPE_UV, vec![id, f((x + dx) as f32), f((y + dy) as f32), f(w), f(h), f(u0), f(v0), f(u1), f(v1), c0, c1]));
+        }
+    }
+    Ok(out)
 }
 
 /// The list as the thunk reads it (records 3 are { 3, 1, f }); function VAs rebased by `delta`.
