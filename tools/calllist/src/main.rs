@@ -307,6 +307,20 @@ fn main() -> ffx_harness::Result<()> {
                     println!("{}", game.command(&format!("write {:#x} e9{}", 0x008f5c60u32, le(rel)))?);
                     println!("{}", game.command(&format!("write {:#x} c3", 0x008f5c10u32))?);
                 }
+                "@scenes" | "@stopscenes" => {
+                    // @scenes S name...: TOSeqStartScene(1, name) for each, as mod Ps2Menu.scenes does at
+                    // a ported screen's first draw (the PS2 at its open); @stopscenes: TOSeqStopScene(1,
+                    // name), as Ps2Menu.scenes_frame once no draw asks for it; names in scratch S
+                    let f = if words[0] == "@scenes" { 0x008a_f0d0u32 } else { 0x008a_f4f0 };
+                    let s = vars[words[1]];
+                    for (i, n) in words[2..].iter().enumerate() {
+                        let at = s + 0x20 * i as u32;
+                        let hex: String = n.bytes().chain([0]).map(|b| format!("{b:02x}")).collect();
+                        game.command(&format!("write {:#x} {hex}", at.wrapping_sub(delta)))?;
+                        let r = game.command(&format!("call {f:#x} 1 {at:#x}"))?;
+                        println!("{} {n} -> {r}", words[0]);
+                    }
+                }
                 "@set" => {
                     let v = u32::from_str_radix(words[2].trim_start_matches("0x"), 16).unwrap();
                     vars.insert(words[1].to_string(), v);

@@ -230,7 +230,7 @@ fn kind_plate(cx: &mut Cx, l: &mut List, x: i32, y: i32, kind: i32) -> R<()> {
     let at = COL_BSOPLT0 - 8 * ((kind >> 3) & 3) as u32;
     let (c0, c1) = (cx.u32(at)?, cx.u32(at - 4)?);
     shape_wh(l, 0xda, x, y, 0, 0, c0, c0);
-    shape_wh(l, 0xdb, x + 16, y, 209, 0, c0, c1);
+    shape_wh(l, 0xdb, x + 16, y, 209 - 16, 0, c0, c1); // PS2 0x001f4820: 209 in all
     let extra = match kind & 3 {
         1 => 0xd7,
         2 => 0x10b,

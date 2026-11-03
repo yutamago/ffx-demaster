@@ -113,7 +113,7 @@ fn plate(cx: &mut Cx, l: &mut List, x: i32, y: i32, kind: i32) -> ffx_harness::R
     let at = 0x025d_16a0 - 8 * ((kind >> 3) & 3) as u32;
     let (c0, c1) = (cx.cx.r32(at)?, cx.cx.r32(at - 4)?);
     l.c(SHAPE_XYWH, &[0xda, x as u32, y as u32, 0, 0, c0, c0]);
-    l.c(SHAPE_XYWH, &[0xdb, (x + 16) as u32, y as u32, 209, 0, c0, c1]);
+    l.c(SHAPE_XYWH, &[0xdb, (x + 16) as u32, y as u32, 209 - 16, 0, c0, c1]); // PS2 0x001f4820: 209 in all
     let extra = match kind & 3 {
         1 => 0xd7,
         2 => 0x10b,
@@ -401,7 +401,7 @@ fn require(cx: &mut Cx, l: &mut List, x: i32, y: i32, item: i32, need: i32, pm: 
     let (rx, ry) = (x + shape.0 + rp.0, y + shape.1 + rp.1);
     if few == 1 {
         let text = cx.cx.call(0x008d_df80, &[0x15])?;
-        let tw = i32::from(cx.cx.call(0x008c_2cb0, &[text])? as u16 as i16);
+        let tw = cx.cx.text_width(text)?;
         l.c(FONT_1612, &[text, (rx - tw) as u32, ry as u32, 1]);
     } else {
         value_m(l, &fo, i64::from(held - need), rx, ry, 0);

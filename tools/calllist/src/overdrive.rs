@@ -187,7 +187,7 @@ fn row(cx: &mut Cx, l: &mut List, w: &[u8], x: i32, y: i32, idx: i32, mode: i32)
     }
     let (c0, c1) = (cx.cx.r32(0x025d_1690)?, cx.cx.r32(0x025d_168c)?);
     l.c(SHAPE_XYWH, &[0xda, x as u32, y as u32, 0, 0, c0, c0]);
-    l.c(SHAPE_XYWH, &[0xdb, (x + 16) as u32, y as u32, 209, 0, c0, c1]);
+    l.c(SHAPE_XYWH, &[0xdb, (x + 16) as u32, y as u32, 209 - 16, 0, c0, c1]); // PS2 0x001f4820: 209 in all
     let pm = cx.pos("pos_pmshape")?;
     l.c(SHAPE_XY, &[0xd7, (x + pm.0 + 0x58) as u32, (y + pm.1) as u32]);
     let e = cx.cx.game.read(0x0159_7770 + 4 * idx as u32, 4)?;
@@ -241,7 +241,7 @@ fn window(cx: &mut Cx, l: &mut List, w: &[u8]) -> ffx_harness::Result<()> {
         let k = cx.cx.call(0x008d_2dc0, &[list, 5, chr, 0x48])?;
         let id = u32::from(u16::from_le_bytes(cx.cx.game.read((list + 2 + 4 * k).wrapping_sub(cx.cx.delta), 2)?[..2].try_into().unwrap()));
         let name = cx.call(0x008c_1a20, id)?;
-        let tw = i32::from(cx.call(0x008c_2cb0, name)? as u16 as i16);
+        let tw = cx.cx.text_width(name)?;
         eprintln!("overdrive title id {id:#x} width {tw}");
         l.c(FONT_1612, &[name, (r.0 + (r.2 - tw) / 2) as u32, (r.1 + 4) as u32, 0]);
     } else {

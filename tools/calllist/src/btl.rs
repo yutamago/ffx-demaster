@@ -1,5 +1,6 @@
 //! What the C# PS2 battle window draw does for window `w` (absolute address), as a call list
 //! (the same algorithm as mod/BattlePatches.cs), with the game's lookups called at the boundary.
+use crate::menu;
 use ffx_harness::Game;
 
 fn hexu(r: &str) -> u32 {
@@ -25,6 +26,14 @@ pub fn ps2btl(game: &mut Game, delta: u32, w: u32, scratch: u32, centred: bool) 
     let cur = i16_(0x42);
     let lb = game.read_abs(list, (count.max(0) as usize) * 2 + 2)?;
     let f = |x: f32| x.to_bits();
+    // the names in the 16x12 font at the PS2's size (mod BattlePatches: Ps2Menu.font / text_width)
+    let words = menu::Ctx { game: &mut *game, delta }.size_words()?;
+    let font = |name: u32, x: f32, y: f32, grey: u32| -> Vec<(u32, Vec<u32>)> {
+        let mut v: Vec<(u32, Vec<u32>)> = words.iter().map(|&(va, ps2, _)| (2, vec![abs(va), ps2])).collect();
+        v.push((abs(0x00901cb0), vec![name, x as i32 as u32, y as i32 as u32, grey]));
+        v.extend(words.iter().map(|&(va, _, old)| (2, vec![abs(va), old])));
+        v
+    };
     let mut names = Vec::new();
     let mut namew = 0f32;
     for e in 0..count {
@@ -38,8 +47,7 @@ pub fn ps2btl(game: &mut Game, delta: u32, w: u32, scratch: u32, centred: bool) 
         let off = u16::from_le_bytes(game.read_abs(rec, 2)?[..2].try_into().unwrap()) as u32;
         let name = strings + off;
         // the scratch is an out-pointer: pass it in sym terms? No: args are raw values, so absolute
-        game.command(&format!("call 0x00905290 {name:#x} {scratch:#x} 0 {:#x} {:#x}", f(0.78), f(1.0)))?;
-        let wdt = f32::from_bits(u32::from_le_bytes(game.read_abs(scratch, 4)?[..4].try_into().unwrap()));
+        let wdt = menu::Ctx { game: &mut *game, delta }.text_width(name)? as f32;
         let use_ = hexu(&game.command(&format!("call 0x0089aca0 {:#x} {:#x}", chr as u32, cmd as u32))?) as i32;
         if use_ != -4 && wdt > namew {
             namew = wdt;
@@ -97,7 +105,7 @@ pub fn ps2btl(game: &mut Game, delta: u32, w: u32, scratch: u32, centred: bool) 
         let y = (ty0 + row * 20) as f32;
         if centred {
             x += ((colw as f32 - wdt) / 2.0).floor();
-            out.push((abs(0x00905930), vec![name, f(x), f(y), grey, f(0.78), f(1.0)]));
+            out.extend(font(name, x, y, grey));
             if e == cur {
                 curx = x as i32;
             }
@@ -105,7 +113,7 @@ pub fn ps2btl(game: &mut Game, delta: u32, w: u32, scratch: u32, centred: bool) 
             for p in &parts {
                 let k = (p >> 8) as i32;
                 if k == 0x10 {
-                    out.push((abs(0x00905930), vec![name, f(x), f(y), grey, f(0.78), f(1.0)]));
+                    out.extend(font(name, x, y, grey));
                     x += namew;
                 } else if k == 1 && !matches!(kind, 1 | 2 | 3 | 4 | 0xe) {
                     out.push((abs(0x008e6af0), vec![f(x), f(y + 2.0), f(12.0), f(12.0), icon, 0x80, 0x80, 0x80, 0x80]));

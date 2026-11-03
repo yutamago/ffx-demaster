@@ -72,7 +72,7 @@ fn plate(cx: &mut Cx, l: &mut List, x: i32, y: i32, kind: i32) -> ffx_harness::R
     let at = COL_BSOPLT0 - 8 * ((kind >> 3) & 3) as u32;
     let (c0, c1) = (cx.cx.r32(at)?, cx.cx.r32(at - 4)?);
     l.c(SHAPE_XYWH, &[0xda, x as u32, y as u32, 0, 0, c0, c0]);
-    l.c(SHAPE_XYWH, &[0xdb, (x + 16) as u32, y as u32, 209, 0, c0, c1]);
+    l.c(SHAPE_XYWH, &[0xdb, (x + 16) as u32, y as u32, 209 - 16, 0, c0, c1]); // PS2 0x001f4820: 209 in all
     let extra = match kind & 3 {
         1 => 0xd7,
         2 => 0x10b,

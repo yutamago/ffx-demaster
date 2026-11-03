@@ -12,7 +12,6 @@ const CONFIG_MES: u32 = 0x008d_c9b0; // TkMenuConfigMes(id)
 const CONFIG_HELP: u32 = 0x008d_c970; // TkMenuConfigHelp(id)
 const SET_HELP: u32 = 0x008a_aeb0; // TkMenuSetHelpMessage
 const GET_LOC: u32 = 0x0064_12d0; // SaveDataGetLoc(id, out)
-const TEXT_WIDTH: u32 = 0x008c_2cb0; // TkMn2StringWidth (low half)
 const WIN_LAYOUT: u32 = 0x008f_a4f0; // TOGetWindowLayout(id)
 const PLATE_LR: u32 = 0x008f_5e90;
 const SHAPE_XY: u32 = 0x0090_3a10;
@@ -51,7 +50,7 @@ fn loc_text(cx: &mut Ctx, l: &mut List, env: &Env, id: u32) -> ffx_harness::Resu
     let buf = l.string(&" ".repeat(255));
     l.c(GET_LOC, &[id, buf]);
     cx.call(GET_LOC, &[id, env.out])?;
-    let w = cx.call(TEXT_WIDTH, &[env.out])? as u16 as i16 as i32;
+    let w = cx.text_width(env.out)?;
     Ok((buf, w))
 }
 
@@ -94,7 +93,7 @@ fn row(cx: &mut Ctx, l: &mut List, env: &Env, r: i32) -> ffx_harness::Result<()>
             loc_text(cx, l, env, (0x1d0 - 2 * i) as u32)?
         } else {
             let t = cx.call(CONFIG_MES, &[id])?;
-            (t, cx.call(TEXT_WIDTH, &[t])? as u16 as i16 as i32)
+            (t, cx.text_width(t)?)
         };
         let tx = wx + (i + 1) * ww / (n + 1) - tw / 2;
         l.c(FONT_1612, &[text, tx as u32, ty as u32, u32::from(!on)]);

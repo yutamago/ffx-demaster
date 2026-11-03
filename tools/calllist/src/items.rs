@@ -75,7 +75,7 @@ fn plate(cx: &mut Cx, l: &mut List, x: i32, y: i32, kind: i32) -> ffx_harness::R
     let at = 0x025d_16a0 - 8 * ((kind >> 3) & 3) as u32;
     let (c0, c1) = (cx.cx.r32(at)?, cx.cx.r32(at - 4)?);
     l.c(SHAPE_XYWH, &[0xda, x as u32, y as u32, 0, 0, c0, c0]);
-    l.c(SHAPE_XYWH, &[0xdb, (x + 16) as u32, y as u32, 209, 0, c0, c1]);
+    l.c(SHAPE_XYWH, &[0xdb, (x + 16) as u32, y as u32, 209 - 16, 0, c0, c1]); // PS2 0x001f4820: 209 in all
     let extra = match kind & 3 {
         1 => 0xd7,
         2 => 0x10b,
@@ -204,7 +204,7 @@ fn bar(cx: &mut Cx, l: &mut List, w: &[u8]) -> ffx_harness::Result<()> {
     l.c(OPEN_PKT, &[]);
     let n = u16_at(w, 0x30).max(1);
     let texts: Vec<u32> = (0..n).map(|i| u32::from_le_bytes(w[0x58 + 12 * i as usize..0x5c + 12 * i as usize].try_into().unwrap())).collect();
-    let widths: Vec<i32> = texts.iter().map(|&t| cx.cx.call(0x008c_2cb0, &[t]).map(|v| i32::from(v as u16 as i16))).collect::<Result<_, _>>()?;
+    let widths: Vec<i32> = texts.iter().map(|&t| cx.cx.text_width(t)).collect::<Result<_, _>>()?;
     let sum: i32 = widths.iter().sum();
     let a = sum + 32 * (n - 1) + 96;
     let width = if a <= 381 { 381 } else { a.min(0x1f0) };

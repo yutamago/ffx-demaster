@@ -36,6 +36,40 @@ impl Ctx<'_> {
         self.game.command(&format!("write {:#x} {hex}", abs.wrapping_sub(self.delta)))?;
         Ok(())
     }
+    /// The words mod Ps2Menu.ps2_sized sets: (VA, the PS2 value, the value now).
+    pub fn size_words(&mut self) -> ffx_harness::Result<Vec<(u32, u32, u32)>> {
+        let lang = self.call(FFX_LANG, &[])? as i32;
+        let mut out = vec![];
+        for (va, v) in SIZE_WORDS.iter().zip(ps2_size_values(lang)) {
+            out.push((*va, v.to_bits(), self.r32(*va)?));
+        }
+        Ok(out)
+    }
+    /// mod Ps2Menu.text_width: TkMn2StringWidth's low half with the PS2 size words set.
+    pub fn text_width(&mut self, text: u32) -> ffx_harness::Result<i32> {
+        let words = self.size_words()?;
+        for &(va, v, _) in &words {
+            self.write_abs(self.abs(va), &v.to_le_bytes())?;
+        }
+        let w = self.call(TEXT_WIDTH, &[text]);
+        for &(va, _, old) in &words {
+            self.write_abs(self.abs(va), &old.to_le_bytes())?;
+        }
+        Ok(i32::from(w? as u16 as i16))
+    }
+}
+
+const TEXT_WIDTH: u32 = 0x008c_2cb0; // TkMn2StringWidth: TOGetMessageWH's width (low half)
+const FFX_LANG: u32 = 0x0064_10e0; // TOGetFFXLang
+/// mod Ps2Menu.ps2_sized's words: the glyph extent factors 0x00c5d778 / 0x00c5d77c,
+/// g_TkMenuScissorScales (0x018716a8, 0x018716ac), the cached letter spaces, the shadow offset.
+const SIZE_WORDS: [u32; 8] = [0x00c5_d778, 0x00c5_d77c, 0x0187_16a8, 0x0187_16ac, 0x0187_16b4, 0x0187_16b8, 0x0187_16e0, 0x0187_16e4];
+
+/// mod Ps2Menu.ps2_size_values: the 16x12 font at the PS2's size (w x 18, shadow (+2, +2), advance w + 2).
+fn ps2_size_values(lang: i32) -> [f32; 8] {
+    let yoff = if lang == 10 { -1.0 } else if (1..=8).contains(&lang) { 1.0 } else { 0.0 };
+    let (pc, ux, uy) = (0.78f32, 1920f32 / 512.0, 1080f32 / 416.0);
+    [ux / uy / pc, (18.0 + pc * yoff) / (pc * (18.0 + yoff)), 1.0, 1.0 / pc, 2.0, 2.0, 2.0 - 2.0 / ux, 2.0 - 2.0 / uy]
 }
 
 /// Builds call lists; strings go to a scratch area (absolute addresses).
@@ -377,8 +411,20 @@ pub fn expand_shapes(cx: &mut Ctx, calls: &[(u32, Vec<u32>)]) -> ffx_harness::Re
     let table = cx.game.read(0x00c5_b460, 0xe68)?;
     let rd32 = |o: usize| u32::from_le_bytes(table[o..o + 4].try_into().unwrap()) as usize;
     let rd16 = |o: usize| u16::from_le_bytes([table[o], table[o + 1]]);
+    let words = cx.size_words()?;
     let mut out = Vec::with_capacity(calls.len());
     for (fun, a) in calls {
+        // the 16x12 font at the PS2's size (mod Ps2Menu.font / font_a: ps2_sized)
+        if *fun == FONT_1612 || *fun == FONT_1612A {
+            for &(va, v, _) in &words {
+                out.push((2, vec![cx.abs(va), v]));
+            }
+            out.push((*fun, a.clone()));
+            for &(va, _, old) in &words {
+                out.push((2, vec![cx.abs(va), old]));
+            }
+            continue;
+        }
         let c2 = *fun == SHAPE_XYC2;
         let id = a.first().copied().unwrap_or(0);
         if (*fun != SHAPE_XY && !c2) || id >= 399 || id == 199 {
