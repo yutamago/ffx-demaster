@@ -1,0 +1,42 @@
+# ui.menus = ps2, Abilities: what mod/ItemMenuPatches.cs draws, through tools/calllist (docs/ui.md,
+# "The Items and Abilities screens"). Give the converter's ui output (efl/x) as the mod. From save
+# slot 1 (salvage ship deck): open the menu, Abilities (two down from Sphere Grid), Tidus; shoot the HD
+# screen; load the PS2 atlas, the PS2 background, point the list window, the help bar and the
+# ability screen's record draw at call lists of the PS2 draws (@ps2items ... help ability),
+# shoot; the 4:3 write and a shot.
+load direct 1 cdsp0000 lockstep
+lockstep on
+pin
+wait 120
+press triangle 4 40
+press down 4 15
+press down 4 15
+press circle 4 40
+press circle 4 40
+wait 20
+shot $OUT\abil-1-hd.bmp
+@base
+@alloc N 4096
+write {N} 2f4646585f446174612f47616d65446174612f505333446174612f6d656e755f75732f44334431312f70733277696e2e6464732e706879726500
+call 0x006651d0 {=N}
+wait 20
+@alloc G 4096
+@thunk G
+@alloc S 4096
+@protect S 0x008f5c00 128
+@ps2bg G
+@alloc L 4096
+@alloc B 4096
+@alloc A 4096
+@alloc H 4096
+@alloc O 4096
+@thunk L
+@thunk B
+@thunk A
+@thunk H
+@ps2items L B A O N help H ability
+wait 2
+shot $OUT\abil-2-ps2.bmp
+write 0x00c34154 abaaaa3f
+wait 2
+shot $OUT\abil-3-ps2-43.bmp

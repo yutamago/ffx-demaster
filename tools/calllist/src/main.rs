@@ -6,10 +6,13 @@
 //!   @thunk NAME           the call-list thunk (thunk.s) at NAME
 //!   @ps2btl W T [centred] the PS2 battle window draw for window W through thunk T
 //!   @ps2menu M C B NAME   the PS2 main menu (menu.rs) through thunks M, C, B; NAME the atlas name
+//!   @ps2items L S A O NAME [help H] [ability]  the PS2 item / ability list, sub-command bar and (ability)
+//!                         party plate (items.rs) through thunks L, S, A; O scratch for out parameters
 //! Substitutions in any line: {NAME[+off]} -> the address in ffx.sym terms (what write/call/read
 //! take), {&NAME[+off]} -> its absolute value as 4 LE bytes (hex), {&va:0x...} -> a VA's absolute
 //! value as LE bytes, {=NAME} -> its absolute value as a number (a call argument), {f:1.5} -> f32 LE bytes, {i:-3} -> i32 LE bytes.
 mod btl;
+mod items;
 mod menu;
 
 /// thunk.s assembled (as --32, objcopy -O binary).
@@ -169,6 +172,48 @@ fn main() -> ffx_harness::Result<()> {
                     println!("{}", game.command(&format!("write {:#x} {}", 0x00c5b2b4u32, le(m)))?);
                     println!("{}", game.command(&format!("write {:#x} {}", built.cmd_window.wrapping_sub(delta), le(c)))?);
                     println!("{}", game.command(&format!("write {:#x} {}", built.help_window.wrapping_sub(delta), le(b)))?);
+                }
+                "@ps2items" => {
+                    let [lt, st, at, out, name] = [1, 2, 3, 4, 5].map(|k| vars[words[k]]);
+                    let ability = words.contains(&"ability");
+                    let built = {
+                        let mut cx = menu::Ctx { game: &mut game, delta };
+                        items::build(&mut cx, [lt + 0x800, st + 0x800, at + 0x800], out, name, ability)?
+                    };
+                    let mut put = |game: &mut ffx_harness::Game, t: u32, l: &menu::List| -> ffx_harness::Result<()> {
+                        for (f, a) in &l.calls {
+                            println!("  call {f:#x} {a:x?}");
+                        }
+                        for (a, s) in &l.strings {
+                            let hex: String = s.iter().map(|x| format!("{x:02x}")).collect();
+                            game.command(&format!("write {:#x} {hex}", a.wrapping_sub(delta)))?;
+                        }
+                        game.command(&format!("write {:#x} {}", (t + 0x100).wrapping_sub(delta), menu::encode(&l.calls, delta)))?;
+                        Ok(())
+                    };
+                    if let Some((w, l)) = &built.list {
+                        put(&mut game, lt, l)?;
+                        println!("{}", game.command(&format!("write {:#x} {}", (w + 0x10).wrapping_sub(delta), le(lt)))?);
+                    }
+                    if let Some((w, l)) = &built.bar {
+                        put(&mut game, st, l)?;
+                        println!("{}", game.command(&format!("write {:#x} {}", (w + 0x10).wrapping_sub(delta), le(st)))?);
+                    }
+                    // help H: the main menu's help bar as MainMenuPatches draws it (menu.rs), through thunk H
+                    if let Some(k) = words.iter().position(|w| *w == "help") {
+                        let ht = vars[words[k + 1]];
+                        let (h, hw) = {
+                            let mut cx = menu::Ctx { game: &mut game, delta };
+                            items::help(&mut cx, ht + 0x800, name, ht)?
+                        };
+                        put(&mut game, ht, &h)?;
+                        println!("{}", game.command(&format!("write {:#x} {}", hw.wrapping_sub(delta), le(ht)))?);
+                    }
+                    if let Some(l) = &built.ability {
+                        put(&mut game, at, l)?;
+                        // the ability menu record's draw (+4 of 0x00c5a320)
+                        println!("{}", game.command(&format!("write {:#x} {}", 0x00c5a324u32, le(at)))?);
+                    }
                 }
                 "@protect" => {
                     // @protect S VA LEN: VirtualProtect(VA, LEN, RWX) through GetModuleHandleA and

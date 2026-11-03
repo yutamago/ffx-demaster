@@ -15,20 +15,20 @@ pub struct Ctx<'a> {
 }
 
 impl Ctx<'_> {
-    fn abs(&self, va: u32) -> u32 {
+    pub fn abs(&self, va: u32) -> u32 {
         va.wrapping_add(self.delta)
     }
-    fn call(&mut self, va: u32, args: &[u32]) -> ffx_harness::Result<u32> {
+    pub fn call(&mut self, va: u32, args: &[u32]) -> ffx_harness::Result<u32> {
         let mut s = format!("call {va:#x}");
         for a in args {
             s.push_str(&format!(" {a:#x}"));
         }
         Ok(hexu(&self.game.command(&s)?))
     }
-    fn r32(&mut self, va: u32) -> ffx_harness::Result<u32> {
+    pub fn r32(&mut self, va: u32) -> ffx_harness::Result<u32> {
         Ok(u32::from_le_bytes(self.game.read(va, 4)?[..4].try_into().unwrap()))
     }
-    fn r16(&mut self, va: u32) -> ffx_harness::Result<i32> {
+    pub fn r16(&mut self, va: u32) -> ffx_harness::Result<i32> {
         Ok(i32::from(i16::from_le_bytes(self.game.read(va, 2)?[..2].try_into().unwrap())))
     }
     fn write_abs(&mut self, abs: u32, bytes: &[u8]) -> ffx_harness::Result<()> {
@@ -49,13 +49,13 @@ impl List {
     pub fn new(scratch: u32) -> Self {
         List { calls: vec![], scratch, strings: vec![] }
     }
-    fn c(&mut self, f: u32, a: &[u32]) {
+    pub fn c(&mut self, f: u32, a: &[u32]) {
         self.calls.push((f, a.to_vec()));
     }
-    fn set(&mut self, dst: u32, v: u32) {
+    pub fn set(&mut self, dst: u32, v: u32) {
         self.calls.push((2, vec![dst, v]));
     }
-    fn string(&mut self, s: &str) -> u32 {
+    pub fn string(&mut self, s: &str) -> u32 {
         let a = self.scratch;
         let mut b = s.as_bytes().to_vec();
         b.push(0);
@@ -65,7 +65,7 @@ impl List {
     }
 }
 
-fn f(x: f32) -> u32 {
+pub fn f(x: f32) -> u32 {
     x.to_bits()
 }
 
@@ -111,7 +111,7 @@ fn cursor(l: &mut List, x: i32, y: i32, dum75: u32) {
 /// Shape 45's parts at their offsets with their sizes given: TOMkpShapePartIndexXYWHC2 then keeps
 /// the UVs one texel inside the cell, as the PS2 sprite (u + w - 1) does; with w = h = 0 it would
 /// sample the neighbouring cells' edge texels.
-fn cursor_parts(x: i32, y: i32, dum75: u32) -> [(u32, Vec<u32>); 2] {
+pub fn cursor_parts(x: i32, y: i32, dum75: u32) -> [(u32, Vec<u32>); 2] {
     let p = |dx: i32, dy: i32, w: f32, h: f32| [f((x + dx) as f32), f((y + dy) as f32), f(w), f(h)];
     let (a, b) = (p(-42, -11, 40.0, 40.0), p(-34, -3, 40.0, 24.0));
     [
