@@ -1,0 +1,325 @@
+//! What mod/MainMenuPatches.cs draws for the main menu (ui.menus = ps2), as call lists for the
+//! thunk: the main draw (PS2 0x0024a4a8 in place of TkMenuDrawMain), the option window (PS2
+//! 0x0024b148 in place of MenuMain_DrawCmdWindow) and the help bar (PS2 0x00243888 in place of
+//! 0x008a9350). The game's lookups are called at the frame boundary; the lists hold the draws.
+//! Addresses are ffx.sym VAs (`abs` rebases them); evidence in docs/ui.md ("The main menu").
+use ffx_harness::Game;
+
+fn hexu(r: &str) -> u32 {
+    u32::from_str_radix(r.trim().trim_start_matches("ok ").trim_start_matches("0x"), 16).unwrap_or(0)
+}
+
+pub struct Ctx<'a> {
+    pub game: &'a mut Game,
+    pub delta: u32,
+}
+
+impl Ctx<'_> {
+    fn abs(&self, va: u32) -> u32 {
+        va.wrapping_add(self.delta)
+    }
+    fn call(&mut self, va: u32, args: &[u32]) -> ffx_harness::Result<u32> {
+        let mut s = format!("call {va:#x}");
+        for a in args {
+            s.push_str(&format!(" {a:#x}"));
+        }
+        Ok(hexu(&self.game.command(&s)?))
+    }
+    fn r32(&mut self, va: u32) -> ffx_harness::Result<u32> {
+        Ok(u32::from_le_bytes(self.game.read(va, 4)?[..4].try_into().unwrap()))
+    }
+    fn r16(&mut self, va: u32) -> ffx_harness::Result<i32> {
+        Ok(i32::from(i16::from_le_bytes(self.game.read(va, 2)?[..2].try_into().unwrap())))
+    }
+    fn write_abs(&mut self, abs: u32, bytes: &[u8]) -> ffx_harness::Result<()> {
+        let hex: String = bytes.iter().map(|b| format!("{b:02x}")).collect();
+        self.game.command(&format!("write {:#x} {hex}", abs.wrapping_sub(self.delta)))?;
+        Ok(())
+    }
+}
+
+/// Builds call lists; strings go to a scratch area (absolute addresses).
+pub struct List {
+    pub calls: Vec<(u32, Vec<u32>)>,
+    scratch: u32,
+    pub strings: Vec<(u32, Vec<u8>)>,
+}
+
+impl List {
+    pub fn new(scratch: u32) -> Self {
+        List { calls: vec![], scratch, strings: vec![] }
+    }
+    fn c(&mut self, f: u32, a: &[u32]) {
+        self.calls.push((f, a.to_vec()));
+    }
+    fn set(&mut self, dst: u32, v: u32) {
+        self.calls.push((2, vec![dst, v]));
+    }
+    fn string(&mut self, s: &str) -> u32 {
+        let a = self.scratch;
+        let mut b = s.as_bytes().to_vec();
+        b.push(0);
+        self.scratch += (b.len() as u32 + 3) & !3;
+        self.strings.push((a, b));
+        a
+    }
+}
+
+fn f(x: f32) -> u32 {
+    x.to_bits()
+}
+
+// PC functions (ffx.sym)
+const BOX_C2: u32 = 0x008f3db0; // TODrawBoxXYWHC2(x, y, w, h, c0, c1) ints
+const BOX_RGBA: u32 = 0x008fb150; // TOMakePktBoxXYWHRGBA(x, y, w, h, r, g, b, a)
+const PLATE_LR: u32 = 0x008f5e90; // (A, B, x, y, w, c0, c1): A stretched c0..c1, B fixed in c1 (PS2 0x001ff2b8)
+const PLATE_RL: u32 = 0x008f5e20; // (A, B, x, y, w, c0, c1): A fixed in c0, B stretched c0..c1 (PS2 0x001ff1e0)
+const SHAPE_XY: u32 = 0x00903a10; // TOMkpShapeXY(id, x, y)
+const SHAPE_XYWHC2: u32 = 0x00903b70; // TOMkpShapeXYWHC2(id, x, y, w, h, c0, c1)
+const SHAPE_PART: u32 = 0x009034b0; // TOMkpShapePartIndexXYWHC2(id, part, f x, f y, f w, f h, c0, c1)
+const FONT_1612: u32 = 0x00901cb0; // TOMkpBaseMesFont(text, x, y, colour) (PS2 0x001f3810)
+const FONT_1612A: u32 = 0x00901ce0; // (text, x, y, colour, alpha) (PS2 0x001f3858)
+const STR_S: u32 = 0x00901660; // TOMkpCrossEasyStrFontSClut(s, f x, f y, colour, f sx, sy)
+const DIGIT_R: u32 = 0x009055c0; // ToMakeBtlEasyDigitRight(v, f x, f y, grey, f sx, f sy): right edge at x
+const SX: f32 = 0.78; // the PC's battle digit size (BattlePatches)
+const SY: f32 = 1.0;
+const TIMER: u32 = 0x008e19f0; // (t, f x, f y, colour, colon colour)
+const OPEN_PKT: u32 = 0x008bef30;
+const KICK: u32 = 0x008bea20;
+const VU1_SYNC: u32 = 0x0088ec60;
+const SHAPE_NAME: u32 = 0x008ac8c0; // TOGetShapTextureName
+const HELP: u32 = 0x008a_9350; // the PC's help bar draw (a main-menu window's +0x10)
+
+const GREY: u32 = 0x8080_8080;
+
+pub struct Built {
+    pub main: List,
+    pub cmd: List,
+    pub help: List,
+    pub cmd_window: u32,
+    pub help_window: u32,
+}
+
+/// The PS2 cursor (0x001fe800, kind 0): meswin shape 45's parts, the ball (part 0) in dum75's
+/// colour, the hand in grey.
+fn cursor(l: &mut List, x: i32, y: i32, dum75: u32) {
+    l.c(SHAPE_PART, &[45, 0, f(x as f32), f(y as f32), 0, 0, dum75, dum75]);
+    l.c(SHAPE_PART, &[45, 1, f(x as f32), f(y as f32), 0, 0, GREY, GREY]);
+}
+
+pub fn build(cx: &mut Ctx, scratch: [u32; 3], ps2_name: u32) -> ffx_harness::Result<Built> {
+    // the atlas swap: TOGetShapTextureName(0x3e00) answers from a table slot
+    let orig = cx.call(SHAPE_NAME, &[0x3e00])?;
+    let table = cx.game.read(0x00c5_9d58, 0x168)?;
+    let slot = (0..table.len() / 4)
+        .find(|&k| u32::from_le_bytes(table[4 * k..4 * k + 4].try_into().unwrap()) == orig)
+        .map(|k| cx.abs(0x00c5_9d58 + 4 * k as u32))
+        .expect("meswin name slot");
+    eprintln!("meswin name {orig:#x} slot {slot:#x}");
+    let dum75 = cx.r32(0x025d_16ac)?;
+
+    // ---- main draw (PS2 0x0024a4a8)
+    let mut m = List::new(scratch[0]);
+    m.set(slot, ps2_name);
+    m.c(VU1_SYNC, &[]);
+    m.c(OPEN_PKT, &[]);
+    let n = cx.call(0x008a_9b50, &[])? as i32; // TkMenuGetPlayerListMax2
+    let party = cx.call(0x008a_9b70, &[])? as i32; // TkMenuGetPlayerPartyMask
+    let (nx, ny, nw) = (cx.r16(0x025d_1676)?, cx.r16(0x025d_1674)?, cx.r16(0x025d_1672)?);
+    let pitch = 44; // num_namepltspc, set by the draw
+    let (c0, c1) = (cx.r32(0x025d_166c)?, cx.r32(0x025d_1668)?);
+    let pt = |cx: &mut Ctx, a: u32| -> ffx_harness::Result<(i32, i32)> { Ok((cx.r16(a + 2)?, cx.r16(a)?)) };
+    let namestr = pt(cx, 0x025d_1662)?;
+    let hptex = pt(cx, 0x025d_165e)?;
+    let hpstr = pt(cx, 0x025d_165a)?;
+    let mptex = pt(cx, 0x025d_1656)?;
+    let mpstr = pt(cx, 0x025d_1652)?;
+    let slv = pt(cx, 0x025d_164e)?;
+    let spstr = pt(cx, 0x025d_164a)?;
+    let na_pos = (cx.r16(0x023c_c144)?, cx.r16(0x023c_c146)?);
+    let na_wh = (cx.r16(0x023c_c13c)?, cx.r16(0x023c_c13e)?);
+    let na_c = (cx.r32(0x023c_c148)?, cx.r32(0x023c_c140)?);
+    let line = (cx.r16(0x0187_168c)?, cx.r16(0x0187_168e)?, cx.r16(0x0187_1694)?);
+    let choice = cx.r32(0x0187_154c)? as i32;
+    let (swap_a, swap_b) = (cx.r32(0x0187_155c)? as i32, cx.r32(0x0187_1560)? as i32);
+    let timer = cx.call(0x008a_9c60, &[])? as i32;
+    eprintln!(
+        "main: n {n} party {party} plate {nx},{ny} w {nw} c {c0:08x} {c1:08x} noactive {na_pos:?} {na_wh:?} {:08x} {:08x} line {line:?} choice {choice} dum75 {dum75:08x}",
+        na_c.0, na_c.1
+    );
+    let pick = |cx: &mut Ctx, i: i32| cx.call(0x008a_9b00, &[i as u32]).map(|v| v as i32);
+    for i in 0..n {
+        let s = cx.r16(0x0187_1678 + 2 * i as u32)?;
+        if s == 0 {
+            continue;
+        }
+        let cos = cx.call(0x0088_e750, &[s as u32])? & 0xffff;
+        let dx = -((cos as i32) << 10) / 0x3000;
+        let chr = pick(cx, i)?;
+        let y = ny + i * pitch;
+        let x = dx + nx;
+        if i < party {
+            m.c(BOX_C2, &[(x + na_pos.0) as u32, (y + na_pos.1) as u32, na_wh.0 as u32, na_wh.1 as u32, na_c.0, na_c.1]);
+        }
+        m.c(PLATE_LR, &[4, 5, x as u32, y as u32, nw as u32, c0, c1]);
+        m.c(SHAPE_XYWHC2, &[0x16, (x + line.0) as u32, (y + line.1) as u32, line.2 as u32, 0, GREY, GREY]);
+        let name = cx.call(0x008a_c850, &[chr as u32])?; // TOGetSaveChrName
+        let colour = cx.call(0x008a_99f0, &[chr as u32])?; // MenuPlayer_DamageClass
+        m.c(FONT_1612, &[name, (x + namestr.0) as u32, (y + namestr.1) as u32, colour]);
+        m.c(SHAPE_XY, &[0x21, (x + hptex.0) as u32, (y + hptex.1) as u32]);
+        let (hp, hpm) = (cx.call(0x008a_98c0, &[chr as u32])?, cx.call(0x008a_9990, &[chr as u32])?);
+        let s1 = m.string(&format!("{hp:5}/{hpm:5}"));
+        let k = 1.0;
+        m.c(STR_S, &[s1, f((x + hpstr.0) as f32), f((y + hpstr.1) as f32), 0x25, f(k), 0]);
+        m.c(SHAPE_XY, &[0x22, (x + mptex.0) as u32, (y + mptex.1) as u32]);
+        let (mp, mpm) = (cx.call(0x008a_9970, &[chr as u32])?, cx.call(0x008a_99b0, &[chr as u32])?);
+        let s2 = m.string(&format!("{mp:4}/{mpm:4}"));
+        m.c(STR_S, &[s2, f((x + mpstr.0) as f32), f((y + mpstr.1) as f32), 0x25, f(k), 0]);
+        m.c(SHAPE_XY, &[0x3d, (x + slv.0) as u32, (y + slv.1) as u32]);
+        let sp = cx.call(0x008a_9b80, &[chr as u32])?;
+        // PS2 0x001f5e88(sp, x + spstr.x + slv.x, y + slv.y + spstr.y, 0): "%d" in 12-pixel cells
+        // ending at x + 2 (0x001f5f58)
+        m.c(DIGIT_R, &[sp, f((x + spstr.0 + slv.0 + 2) as f32), f((y + slv.1 + spstr.1) as f32), 0, f(SX), f(SY)]);
+        let (nxp, nyp) = (x + namestr.0, y + namestr.1);
+        if choice == chr {
+            cursor(&mut m, nxp, nyp, dum75);
+        }
+        if swap_a >= 0 && pick(cx, swap_a)? == chr {
+            if swap_b < 0 {
+                cursor(&mut m, nxp, nyp, dum75);
+            } else if (timer / 2) & 1 != 0 {
+                cursor(&mut m, nxp - 10, nyp - 2, dum75);
+            }
+        }
+        if swap_b >= 0 && pick(cx, swap_b)? == chr {
+            cursor(&mut m, nxp, nyp, dum75);
+        }
+    }
+    // footer: TOSeqGetPoint(1, name, &x, &y) through a scratch area
+    let sp_scratch = scratch[2] + 0x600;
+    let point = |cx: &mut Ctx, name: &str| -> ffx_harness::Result<(i32, i32)> {
+        let mut b = name.as_bytes().to_vec();
+        b.push(0);
+        cx.write_abs(sp_scratch + 0x20, &b)?;
+        cx.write_abs(sp_scratch, &[0; 8])?;
+        cx.call(0x008a_e450, &[1, sp_scratch + 0x20, sp_scratch, sp_scratch + 4])?;
+        let r = cx.game.read_abs(sp_scratch, 8)?;
+        Ok((
+            i32::from(i16::from_le_bytes([r[0], r[1]])),
+            i32::from(i16::from_le_bytes([r[4], r[5]])),
+        ))
+    };
+    let gilstr = point(cx, "pos_gilstr")?;
+    let timestr = point(cx, "pos_timestr")?;
+    let gilshape = point(cx, "pos_gilshape")?;
+    let gilshape2 = point(cx, "pos_gilshape2")?;
+    eprintln!("footer: gil {gilstr:?} time {timestr:?} shapes {gilshape:?} {gilshape2:?}");
+    let gil = cx.call(0x0078_4e80, &[])?;
+    m.c(DIGIT_R, &[gil, f((gilstr.0 + 2) as f32), f(gilstr.1 as f32), 0, f(SX), f(SY)]);
+    let t = cx.call(0x008a_9c50, &[])?;
+    m.c(TIMER, &[t, f(timestr.0 as f32), f(timestr.1 as f32), 0x25, if t & 1 != 0 { 0x25 } else { 1 }]);
+    m.c(SHAPE_XY, &[0xd5, gilshape.0 as u32, gilshape.1 as u32]);
+    m.c(SHAPE_XY, &[0xd6, (gilshape.0 + gilshape2.0) as u32, (gilshape.1 + gilshape2.1) as u32]);
+    let r = |cx: &mut Ctx, a: u32| cx.r16(a);
+    let sub = (r(cx, 0x025d_1608)?, r(cx, 0x025d_1606)?, r(cx, 0x025d_1604)?);
+    let place = (r(cx, 0x025d_15f8)?, r(cx, 0x025d_15f6)?, r(cx, 0x025d_15f4)?);
+    let placeshape = pt(cx, 0x025d_15e8)?;
+    let placestr = pt(cx, 0x025d_15e4)?;
+    m.c(PLATE_RL, &[0xd2, 0xd3, sub.0 as u32, sub.1 as u32, sub.2 as u32, cx.r32(0x025d_1600)?, cx.r32(0x025d_15fc)?]);
+    m.c(PLATE_RL, &[0xd8, 0xd9, place.0 as u32, place.1 as u32, place.2 as u32, cx.r32(0x025d_15f0)?, cx.r32(0x025d_15ec)?]);
+    m.c(SHAPE_XY, &[0x27, (place.0 + placeshape.0) as u32, (place.1 + placeshape.1) as u32]);
+    let dic = cx.call(0x0086_c410, &[])?;
+    let eng = cx.call(0x0078_51d0, &[])?;
+    let text = cx.call(0x0086_c430, &[dic, eng])?;
+    m.c(FONT_1612, &[text, (place.0 + placestr.0) as u32, (place.1 + placestr.1) as u32, 0]);
+    m.c(KICK, &[]);
+    m.c(VU1_SYNC, &[]);
+    m.set(slot, orig);
+
+    // ---- option window (PS2 0x0024b148 / 0x0024af70)
+    let mut c = List::new(scratch[1]);
+    let mask = cx.call(0x008a_a460, &[])?;
+    let slide = cx.r32(0x0187_1558)? as i32;
+    let cur = cx.r32(0x0187_1548)? as i32;
+    let count = cx.call(0x008e_2280, &[])? as i32;
+    let rect = (r(cx, 0x025d_1648)?, r(cx, 0x025d_1646)?, r(cx, 0x025d_1644)?, r(cx, 0x025d_1642)?);
+    let cpitch = r(cx, 0x025d_1640)?;
+    let (k0, k1) = (cx.r32(0x025d_163c)?, cx.r32(0x025d_1638)?);
+    eprintln!("options: mask {mask:#x} slide {slide:#x} cur {cur} count {count} rect {rect:?} pitch {cpitch} c {k0:08x} {k1:08x}");
+    if mask & 0x80800 == 0 {
+        c.set(slot, ps2_name);
+        c.c(VU1_SYNC, &[]);
+        c.c(OPEN_PKT, &[]);
+        let mut order: Vec<i32> = if slide != 0 { (0..count).filter(|&i| i != cur).collect() } else { vec![] };
+        order.push(cur);
+        for i in order {
+            let v = (rect.1 + i * cpitch) * slide + (0x1000 - slide) * 3;
+            let row_y = v / 4096;
+            let alpha = (slide / 32) as u32;
+            let x0 = rect.0;
+            c.c(BOX_RGBA, &[(x0 + 4) as u32, (row_y + 4) as u32, rect.2 as u32, rect.3 as u32, 0, 0, 0, alpha]);
+            c.c(BOX_C2, &[x0 as u32, row_y as u32, rect.2 as u32, rect.3 as u32, (k0 & 0xff_ffff) | alpha << 24, (k1 & 0xff_ffff) | alpha << 24]);
+            let id = cx.call(0x008e_2270, &[i as u32])?;
+            let grey = u32::from(cx.call(0x008e_2290, &[i as u32])? as i16 == 0);
+            let text = cx.call(0x008d_df80, &[id])?; // TkMenuMainMes
+            c.c(FONT_1612A, &[text, (x0 + 15) as u32, (row_y + 2) as u32, grey, alpha]);
+            if i == cur && slide == 0x1000 {
+                cursor(&mut c, x0 + 15, row_y + 2, dum75);
+            }
+        }
+        c.c(KICK, &[]);
+        c.c(VU1_SYNC, &[]);
+        c.set(slot, orig);
+    }
+    // the window whose draw is MenuMain_DrawCmdWindow (records of 0x98 from 0x01840900)
+    let recs = cx.game.read(0x0184_0900, 0x98 * 32)?;
+    let want = cx.abs(0x008e_20f0).to_le_bytes();
+    let off = recs.windows(4).position(|w| w == want).expect("no window draws MenuMain_DrawCmdWindow") as u32;
+    let cmd_window = cx.abs(0x0184_0900) + off;
+
+    // ---- help bar (PS2 0x00243888 in place of the PC's 0x008a9350)
+    let mut h = List::new(scratch[2]);
+    if mask & 0x80800 == 0 {
+        h.set(slot, ps2_name);
+        h.c(VU1_SYNC, &[]);
+        h.c(OPEN_PKT, &[]);
+        let sub = (r(cx, 0x025d_1630)?, r(cx, 0x025d_162e)?, r(cx, 0x025d_162c)?);
+        let help = (r(cx, 0x025d_161c)?, r(cx, 0x025d_161a)?, r(cx, 0x025d_1618)?);
+        let helpstr = pt(cx, 0x025d_160a)?;
+        h.c(PLATE_LR, &[0x45, 0x46, sub.0 as u32, sub.1 as u32, sub.2 as u32, cx.r32(0x025d_1628)?, cx.r32(0x025d_1624)?]);
+        h.c(PLATE_LR, &[6, 7, help.0 as u32, help.1 as u32, help.2 as u32, cx.r32(0x025d_1614)?, cx.r32(0x025d_1610)?]);
+        h.c(SHAPE_XY, &[0x3e, (sub.0 + 0x50) as u32, sub.1 as u32]);
+        let msg = cx.r32(0x0184_1c00)?;
+        eprintln!("help: sub {sub:?} help {help:?} str {helpstr:?} msg {msg:#x}");
+        if msg != 0 {
+            h.c(FONT_1612, &[msg, (help.0 + helpstr.0) as u32, (help.1 + helpstr.1) as u32, 0]);
+        }
+        h.c(KICK, &[]);
+        h.c(VU1_SYNC, &[]);
+        h.set(slot, orig);
+    }
+    let want = cx.abs(HELP).to_le_bytes();
+    let off = recs.windows(4).position(|w| w == want).expect("no window draws the help bar") as u32;
+    let help_window = cx.abs(0x0184_0900) + off;
+    Ok(Built { main: m, cmd: c, help: h, cmd_window, help_window })
+}
+
+/// The list as the thunk reads it (records 3 are { 3, 1, f }); function VAs rebased by `delta`.
+pub fn encode(list: &[(u32, Vec<u32>)], delta: u32) -> String {
+    let mut s = String::new();
+    let mut w = |v: u32| s.push_str(&v.to_le_bytes().iter().map(|b| format!("{b:02x}")).collect::<String>());
+    for (f, args) in list {
+        w(if *f > 3 { f.wrapping_add(delta) } else { *f });
+        if *f == 3 {
+            w(1);
+            w(args[0]);
+            continue;
+        }
+        w(args.len() as u32);
+        for a in args {
+            w(*a);
+        }
+    }
+    w(0);
+    s
+}
