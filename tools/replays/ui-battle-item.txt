@@ -1,4 +1,6 @@
 # ui.menus = ps2, battle: the item window (kind 6) as the mod's hook draws it (see ui-battle-main.txt)
+# The cursor is the PS2 one (the mod's TOMakePktShapeCursor hook: meswin shape 45 from the
+# converter's ps2win, which the run loads; give the converter's ui output as a mod).
 # Run with tools/calllist, not shotrun: the @ lines are its commands (docs/ui.md, "The battle command windows").
 load direct 1 cdsp0000 lockstep
 lockstep on
@@ -15,8 +17,12 @@ shot $OUT\item-1-hd.bmp
 read 0x0133c950 0x780
 @base
 @alloc T 4096
-write {T} 5589e5565753e8000000005e81c6f50000008b0685c0743883f80175138b55088b4e0c8b0c0a8b5608890a83c610ebe28b5e0489d98d7c8e0485c97408ff3783ef0449ebf4ffd08d249c8d749e08ebc25b5f5e5d31c0c3
-@ps2btl k6 T
+@thunk T
+@alloc N 4096
+write {N} 2f4646585f446174612f47616d65446174612f505333446174612f6d656e755f75732f44334431312f70733277696e2e6464732e706879726500
+call 0x006651d0 {=N}
+wait 20
+@ps2btl k6 T ps2cursor N
 wait 1
 shot $OUT\item-2-ps2.bmp
 write 0x00c34154 abaaaa3f
