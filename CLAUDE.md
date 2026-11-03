@@ -9,6 +9,8 @@ Plan and status: `docs/plan.md`. What differs: `docs/differences.md`.
 - Never commit game data: no disc images, extracted files, `.phyre`, PNG/DDS
   output. The mod ships code only; the converter builds assets from the
   player's own PS2 disc image on their machine.
+- Never add a `Co-Authored-By: Claude` footer (or any Claude attribution) to
+  commit messages, PR descriptions or other messages (user, 2026-11-03).
 - Pushing straight to `main` is fine (user, 2026-11-02). Agents working in a
   worktree commit on their branch; the orchestrator merges.
 - ffx-rust (`../ffx-decomp`, private, github.com/yutamago/ffx-rust) is ours:
