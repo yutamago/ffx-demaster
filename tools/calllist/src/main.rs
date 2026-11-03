@@ -131,6 +131,11 @@ fn main() -> ffx_harness::Result<()> {
                         let mut cx = menu::Ctx { game: &mut game, delta };
                         list.extend(menu::ps2_cursor_calls(&mut cx, a[1] as i32, a[2] as i32, vars[words[k + 1]])?);
                     }
+                    // odtab NAME: the Overdrive tab and battle words as BattleSeqPatches draws them
+                    if let Some(k) = words.iter().position(|w| *w == "odtab") {
+                        let mut cx = menu::Ctx { game: &mut game, delta };
+                        list.extend(menu::od_tab_calls(&mut cx, vars[words[k + 1]])?);
+                    }
                     for (f, a) in &list {
                         println!("  call {:#x} {:x?}", f.wrapping_sub(delta), a);
                     }

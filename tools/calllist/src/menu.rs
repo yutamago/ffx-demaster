@@ -124,7 +124,12 @@ fn cursor_parts(x: i32, y: i32, dum75: u32) -> [(u32, Vec<u32>); 2] {
 /// lists store the PS2 atlas's name there around their draws, as the mod's hook answers.
 /// Returns the slot (absolute) and the meswin name it holds.
 pub fn atlas_slot(cx: &mut Ctx) -> ffx_harness::Result<(u32, u32)> {
-    let orig = cx.call(SHAPE_NAME, &[0x3e00])?;
+    sheet_slot(cx, 0x3e00)
+}
+
+/// [`atlas_slot`] for any sheet (0x3f00: the battle atlas).
+pub fn sheet_slot(cx: &mut Ctx, sheet: u32) -> ffx_harness::Result<(u32, u32)> {
+    let orig = cx.call(SHAPE_NAME, &[sheet])?;
     let table = cx.game.read(0x00c5_9d58, 0x168)?;
     let slot = (0..table.len() / 4)
         .find(|&k| u32::from_le_bytes(table[4 * k..4 * k + 4].try_into().unwrap()) == orig)
@@ -143,6 +148,25 @@ pub fn ps2_cursor_calls(cx: &mut Ctx, x: i32, y: i32, name: u32) -> ffx_harness:
     let mut v = vec![(cx.abs(0x008f_dee0), vec![0, 0, 512, 416]), (2, vec![slot, name])];
     v.extend(cursor_parts(x, y, ball).into_iter().map(|(f, a)| (cx.abs(f), a)));
     v.push((2, vec![slot, orig]));
+    Ok(v)
+}
+
+/// What mod/BattleSeqPatches.cs draws, at fixed places: the Overdrive tab (battle shape 413's one
+/// part, (0, 112) 160 x 16 at dx -32, from the PS2 battle atlas `name`) where the battle sequence
+/// puts it at rest, (46, 318) in 0x80808080; and the four battle words (TOMakePktBtlIconA kinds
+/// 0..3) from their PS2 places in `icon` at the PS2 size, at (200, 120 + 30 k).
+pub fn od_tab_calls(cx: &mut Ctx, name: u32) -> ffx_harness::Result<Vec<(u32, Vec<u32>)>> {
+    let (slot, orig) = sheet_slot(cx, 0x3f00)?;
+    let c = 0x8080_8080;
+    let mut v = vec![(cx.abs(0x008f_dee0), vec![0, 0, 512, 416]), (2, vec![slot, name])];
+    v.push((cx.abs(SHAPE_PART), vec![413, 0, f(46.0 - 32.0), f(318.0), f(160.0), f(16.0), c, c]));
+    v.push((2, vec![slot, orig]));
+    const WORDS: [[u32; 4]; 4] = [[0, 110, 164, 127], [164, 96, 231, 118], [55, 96, 152, 110], [0, 96, 45, 106]];
+    for (k, r) in WORDS.iter().enumerate() {
+        let (x, y) = (200.0, 120.0 + 30.0 * k as f32);
+        let uv = r.map(|t| f(4.0 * t as f32));
+        v.push((cx.abs(0x0090_3ee0), vec![600, f(x), f(y), f((r[2] - r[0]) as f32), f((r[3] - r[1]) as f32), uv[0], uv[1], uv[2], uv[3], c, c]));
+    }
     Ok(v)
 }
 

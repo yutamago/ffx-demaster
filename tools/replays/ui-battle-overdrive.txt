@@ -1,0 +1,38 @@
+# ui.menus = ps2, battle: the Overdrive tab and the battle words as mod/BattleSeqPatches.cs draws
+# them, through tools/calllist (docs/ui.md, "The Overdrive tab", "Battle words"). Give the
+# converter's ui output as a mod (ps2win, ps2btl, icon). The battle of ffx-rust's
+# battle-overdrive.txt (save slot 5, Djose highroad, Ochu and Garm) with Tidus's gauge full: his
+# first menu starts the sequence scene "blimitlay" (the tab flies in and blinks), which the PC
+# draws only above y 300. Shots: the HD main window with the HD tab, then the PS2 window port
+# (BattlePatches) plus the calls of the BattleSeqPatches hooks at fixed places: shape 413 from
+# the PS2 battle atlas where the scene puts it at rest (46, 318), and the four battle words
+# (OVERKILL, IMMUNE, MISS, MP) from their PS2 places at the PS2 size; then the 4:3 write.
+load direct 5 kami0100 lockstep
+lockstep on
+pin
+wait 10
+write 0x011307e8 01000405ff020306
+battle 33 0 3
+waitfor 0x0112a8e0:1 01 ff 4000
+writep 0x011334d4 0x5bc 64
+writep 0x011334d4 0x823c 14
+waitfor 0x023cc08c:4 01000000 ffffffff 600
+wait 30
+shot $OUT\od-1-hd.bmp
+@base
+@alloc T 4096
+@thunk T
+@alloc N 4096
+write {N} 2f4646585f446174612f47616d65446174612f505333446174612f6d656e755f75732f44334431312f70733277696e2e6464732e706879726500
+call 0x006651d0 {=N}
+wait 20
+@alloc B 4096
+write {B} 2f4646585f446174612f47616d65446174612f505333446174612f6d656e755f75732f44334431312f70733262746c2e6464732e706879726500
+call 0x006651d0 {=B}
+wait 20
+@ps2btl 0 T centred ps2cursor N odtab B
+wait 1
+shot $OUT\od-2-ps2.bmp
+write 0x00c34154 abaaaa3f
+wait 2
+shot $OUT\od-3-ps2-43.bmp
