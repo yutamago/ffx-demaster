@@ -1,0 +1,66 @@
+# ui.menus = ps2, Customize: what mod/CustomizeMenuPatches.cs draws, through tools/calllist
+# (docs/ui.md, "The Customize screen"). Give the converter's ui output (efl/x) as the mod. From save
+# slot 5 (Thunder Plains agency, all main-menu entries): open the menu, Customize (the 9th entry),
+# down to Yellow Shield; shoot the HD equipment list; pick it, down to Lightning Ward (the abilities
+# to add, with the item cost) and shoot the HD screen. Then load the PS2 atlas and fonts, the PS2
+# background (@ps2bg), point both windows' draws at call lists of the PS2 draws (@ps2screen
+# customize), shoot; the 4:3 write and a shot. Back (cross) to the equipment list: the same, shot,
+# 4:3 shot. The help bar stays HD.
+load direct 5 kami0100 lockstep
+lockstep on
+pin
+wait 120
+press triangle 4 40
+press down 4 15
+press down 4 15
+press down 4 15
+press down 4 15
+press down 4 15
+press down 4 15
+press down 4 15
+press down 4 15
+press circle 4 40
+wait 30
+press down 4 15
+press down 4 15
+press down 4 15
+wait 20
+shot $OUT\cust-1-hd.bmp
+press circle 4 40
+wait 30
+press down 4 15
+wait 20
+shot $OUT\cust-4-add-hd.bmp
+@base
+@alloc N 4096
+write {N} 2f4646585f446174612f47616d65446174612f505333446174612f6d656e755f75732f44334431312f70733277696e2e6464732e706879726500
+call 0x006651d0 {=N}
+@alloc F 4096
+write {F} 2f4646585f446174612f47616d65446174612f505333446174612f6d656e755f75732f44334431312f707332666e742e6464732e706879726500
+call 0x006651d0 {=F}
+wait 20
+@alloc G 4096
+@thunk G
+@alloc S 4096
+@protect S 0x008f5c00 128
+@ps2bg G
+@alloc O 4096
+@alloc T1 65536
+@alloc T2 65536
+@thunk T1
+@thunk T2
+@ps2screen customize O N F T1 T2
+wait 2
+shot $OUT\cust-5-add-ps2.bmp
+write 0x00c34154 abaaaa3f
+wait 2
+shot $OUT\cust-6-add-ps2-43.bmp
+write 0x00c34154 398ee33f
+press cross 4 30
+wait 20
+@ps2screen customize O N F T1 T2
+wait 2
+shot $OUT\cust-2-ps2.bmp
+write 0x00c34154 abaaaa3f
+wait 2
+shot $OUT\cust-3-ps2-43.bmp
