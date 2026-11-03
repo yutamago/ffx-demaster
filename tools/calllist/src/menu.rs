@@ -194,6 +194,7 @@ pub fn build(cx: &mut Ctx, scratch: [u32; 3], ps2_name: u32, fnt_name: u32) -> f
     let mpstr = pt(cx, 0x025d_1652)?;
     let slv = pt(cx, 0x025d_164e)?;
     let spstr = pt(cx, 0x025d_164a)?;
+    eprintln!("plate: namestr {namestr:?} hptex {hptex:?} hpstr {hpstr:?} mptex {mptex:?} mpstr {mpstr:?} slvshape {slv:?} spstr {spstr:?}");
     let na_pos = (cx.r16(0x023c_c144)?, cx.r16(0x023c_c146)?);
     let na_wh = (cx.r16(0x023c_c13c)?, cx.r16(0x023c_c13e)?);
     let na_c = (cx.r32(0x023c_c148)?, cx.r32(0x023c_c140)?);
