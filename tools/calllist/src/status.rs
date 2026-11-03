@@ -172,66 +172,9 @@ impl Cx<'_, '_> {
     }
     /// TOMkpShapeXY as the C# draws it: part by part with TOMkpShapePartIndexXYWHC2, a run of one
     /// cell tiled side by side as one quad over the cell's inner columns.
+    /// TOMkpShapeXY (grey): main.rs's expand_shapes draws it part by part, as mod Ps2Menu.shape.
     fn shape(&mut self, l: &mut List, id: u32, x: i32, y: i32) -> R<()> {
-        let i = if id >= 200 { id - 200 } else { id };
-        let e = MESWIN_LAYOUT + self.u32(MESWIN_LAYOUT + 4 + 4 * i)?;
-        let n = self.u32(e)? as usize;
-        let raw = self.cx.game.read(e + 4, 12 * n)?;
-        let parts: Vec<_> = (0..n)
-            .map(|k| {
-                let q = &raw[12 * k..12 * k + 12];
-                let w32 = |o: usize| u32::from_le_bytes(q[o..o + 4].try_into().unwrap());
-                let dy = i32::from(q[3] as i8);
-                let key = (w32(0) & 0xffff, w32(4), w32(8), dy);
-                let (w, h) = (i32::from(u16::from_le_bytes([q[4], q[5]])), i32::from(u16::from_le_bytes([q[6], q[7]])));
-                (key, i32::from(q[2] as i8), dy, w, h)
-            })
-            .collect();
-        let mut used = vec![false; n];
-        for k in 0..n {
-            if used[k] {
-                continue;
-            }
-            let (key, dx, dy, w, h) = parts[k];
-            let (mut lo, mut hi) = (dx, dx + w);
-            let mut grew = true;
-            while grew {
-                grew = false;
-                for j in k + 1..n {
-                    if used[j] || parts[j].0 != key {
-                        continue;
-                    }
-                    if parts[j].1 == hi {
-                        hi += w;
-                        used[j] = true;
-                        grew = true;
-                    } else if parts[j].1 + w == lo {
-                        lo -= w;
-                        used[j] = true;
-                        grew = true;
-                    }
-                }
-            }
-            if hi - lo == w {
-                l.c(SHAPE_PART, &[id, k as u32, f((x + lo) as f32), f((y + dy) as f32), f(w as f32), f(h as f32), GREY, GREY]);
-            } else {
-                // the run as one quad over the cell's inner columns (ps2win is 256 x 256)
-                let (u, v) = ((key.0 & 0xff) as f32, (key.0 >> 8) as f32);
-                l.c(SHAPE_UV, &[
-                    0,
-                    f((x + lo) as f32),
-                    f((y + dy) as f32),
-                    f((hi - lo) as f32),
-                    f(h as f32),
-                    f((u + 2.0) / 256.0),
-                    f((v + 0.5) / 256.0),
-                    f((u + w as f32 - 2.0) / 256.0),
-                    f((v + h as f32 - 0.5) / 256.0),
-                    GREY,
-                    GREY,
-                ]);
-            }
-        }
+        l.c(0x0090_3a10, &[id, x as u32, y as u32]);
         Ok(())
     }
     /// (record, name pointer) of MsGetRomAbility / MsGetComData style getters (id, &strings).
@@ -623,6 +566,12 @@ fn sub_window(cx: &mut Cx, l: &mut List, w: &[u8]) -> R<()> {
 }
 
 /// The main window (if open) and every open ability page; `scratch` = string areas per thunk.
+/// Page 0 (PS2 0x0022a770) for another screen's list (Equip draws the same page).
+pub fn page_calls(cx0: &mut Ctx, fo: Fonts, out: u32, l: &mut List, chr: u32, t: i32) -> R<()> {
+    let mut cx = Cx { cx: cx0, out, fo };
+    page0(&mut cx, l, 0, 0, chr, t)
+}
+
 pub fn build(cx0: &mut Ctx, env: &Env, scratch: &[u32]) -> R<Vec<Draw>> {
     let delta = cx0.delta;
     let mut cx = Cx { cx: cx0, out: env.out, fo: env.fo };

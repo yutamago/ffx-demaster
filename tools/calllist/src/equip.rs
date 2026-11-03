@@ -50,6 +50,7 @@ struct Cx<'a, 'b> {
     cx: &'a mut Ctx<'b>,
     dum75: u32,
     out: u32, // scratch for out parameters (absolute)
+    fnt: u32, // the ps2fnt name
 }
 
 impl Cx<'_, '_> {
@@ -135,11 +136,12 @@ fn screen(cx: &mut Cx, l: &mut List, slot: u32, win: u32, orig: u32) -> ffx_harn
     let fade = cx.cx.r32(FADE)?;
     let a = |va: u32| cx.cx.abs(va);
     let args = [0, 0, chr, 0, a(0x023c_c3c8), a(0x023c_c3c4), a(0x023c_c3c0), a(0x023c_c3bc), fade];
-    l.set(slot, orig);
-    l.c(STATUS_PAGE, &args);
-    l.set(slot, win);
+    let _ = (args, orig);
     l.c(VU1_SYNC, &[]);
     l.c(OPEN_PKT, &[]);
+    // the status page: the Status port's page 0 (mod EquipMenuPatches calls StatusMenuPatches.page0)
+    let fo = crate::menu::Fonts { slot, win, fnt: cx.fnt };
+    crate::status::page_calls(cx.cx, fo, cx.out, l, chr, fade as i32)?;
     let r1 = cx.pt(R_SOMOJIPLT)?;
     let r2 = cx.pt(R_SOMOJIPLT2)?;
     label_plate(l, r1.0, r1.1, 6);
@@ -251,7 +253,7 @@ fn list(cx: &mut Cx, l: &mut List, w: &[u8]) -> ffx_harness::Result<()> {
 
 pub fn build(cx0: &mut Ctx, env: &Env, scratch: &[u32]) -> ffx_harness::Result<Vec<Draw>> {
     let (slot, orig) = crate::menu::atlas_slot(cx0)?;
-    let mut cx = Cx { cx: cx0, dum75: env.dum75, out: env.out };
+    let mut cx = Cx { cx: cx0, dum75: env.dum75, out: env.out, fnt: env.fo.fnt };
     let mut draws = vec![];
     let mut l = List::new(scratch[0]);
     screen(&mut cx, &mut l, slot, env.fo.win, orig)?;
