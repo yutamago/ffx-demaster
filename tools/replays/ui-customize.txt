@@ -49,7 +49,10 @@ wait 20
 @alloc T2 65536
 @thunk T1
 @thunk T2
+@alloc HB 65536
+@thunk HB
 @ps2screen customize O N F T1 T2
+@ps2help HB N
 wait 2
 shot $OUT\cust-5-add-ps2.bmp
 write 0x00c34154 abaaaa3f
@@ -59,6 +62,7 @@ write 0x00c34154 398ee33f
 press cross 4 30
 wait 20
 @ps2screen customize O N F T1 T2
+@ps2help HB N
 wait 2
 shot $OUT\cust-2-ps2.bmp
 write 0x00c34154 abaaaa3f

@@ -33,7 +33,10 @@ wait 20
 @alloc O 4096
 @alloc T 65536
 @thunk T
+@alloc HB 65536
+@thunk HB
 @ps2screen config O N F T
+@ps2help HB N
 wait 2
 shot $OUT\config-2-ps2.bmp
 write 0x00c34154 abaaaa3f
@@ -45,5 +48,6 @@ press down 4 15
 press right 4 15
 wait 10
 @ps2screen config O N F T
+@ps2help HB N
 wait 2
 shot $OUT\config-4-moved-ps2.bmp

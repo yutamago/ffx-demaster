@@ -39,7 +39,10 @@ wait 20
 @thunk T1
 @thunk T2
 @thunk T3
+@alloc HB 65536
+@thunk HB
 @ps2screen status O N F T1 T2 T3
+@ps2help HB N
 wait 2
 shot $OUT\status-2-ps2.bmp
 write 0x00c34154 abaaaa3f
@@ -50,6 +53,7 @@ press circle 4 40
 wait 40
 shot $OUT\status-4-page-hd.bmp
 @ps2screen status O N F T1 T2 T3
+@ps2help HB N
 wait 2
 shot $OUT\status-5-page-ps2.bmp
 # back to the status page, R1: Rikku; her page, then circle twice more (the third ability page)
@@ -57,6 +61,7 @@ press cross 4 40
 press r1 4 40
 wait 20
 @ps2screen status O N F T1 T2 T3
+@ps2help HB N
 wait 2
 shot $OUT\status-6-rikku-ps2.bmp
 press circle 4 40
@@ -64,5 +69,6 @@ press circle 4 40
 press circle 4 40
 wait 40
 @ps2screen status O N F T1 T2 T3
+@ps2help HB N
 wait 2
 shot $OUT\status-7-rikku-page3-ps2.bmp

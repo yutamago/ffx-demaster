@@ -12,6 +12,7 @@
 //!   @ps2screen SCREEN O N F T1 [T2 ...]  a main-menu sub-screen (screens.rs: equip, status, config,
 //!                         overdrive, customize) through thunks T1..; O scratch, N / F the ps2win /
 //!                         ps2fnt names
+//!   @ps2help H N          the main menu's help bar (items::help) through thunk H
 //! Substitutions in any line: {NAME[+off]} -> the address in ffx.sym terms (what write/call/read
 //! take), {&NAME[+off]} -> its absolute value as 4 LE bytes (hex), {&va:0x...} -> a VA's absolute
 //! value as LE bytes, {=NAME} -> its absolute value as a number (a call argument), {f:1.5} -> f32 LE bytes, {i:-3} -> i32 LE bytes.
@@ -226,6 +227,21 @@ fn main() -> ffx_harness::Result<()> {
                         // the ability menu record's draw (+4 of 0x00c5a320)
                         println!("{}", game.command(&format!("write {:#x} {}", 0x00c5a324u32, le(at)))?);
                     }
+                }
+                "@ps2help" => {
+                    // @ps2help H N: only the main menu's help bar as MainMenuPatches draws it, through thunk H
+                    let [ht, name] = [1, 2].map(|k| vars[words[k]]);
+                    let (h, hw) = {
+                        let mut cx = menu::Ctx { game: &mut game, delta };
+                        items::help(&mut cx, ht + 0x8000, name, ht)?
+                    };
+                    let calls = menu::expand_shapes(&mut menu::Ctx { game: &mut game, delta }, &h.calls)?;
+                    for (a, s) in &h.strings {
+                        let hex: String = s.iter().map(|x| format!("{x:02x}")).collect();
+                        game.command(&format!("write {:#x} {hex}", a.wrapping_sub(delta)))?;
+                    }
+                    game.command(&format!("write {:#x} {}", (ht + 0x100).wrapping_sub(delta), menu::encode(&calls, delta)))?;
+                    println!("{}", game.command(&format!("write {:#x} {}", hw.wrapping_sub(delta), le(ht)))?);
                 }
                 "@ps2screen" => {
                     let screen = words[1];
