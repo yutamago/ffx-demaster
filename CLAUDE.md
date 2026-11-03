@@ -87,6 +87,9 @@ Plan and status: `docs/plan.md`. What differs: `docs/differences.md`.
   Settings live in 4 places a test keeps in sync: `config.rs`,
   `converter/demaster.toml`, `mod/Settings.cs` (+ `mod/Patches.cs` for code
   patches), `docs/config.md`.
+- A change that alters a job's output must bump that job's `Job::version`, or
+  `demaster build` keeps the old files (the build hash covers the converter
+  version, the job version, its settings and inputs, not the code).
 - Jobs must be deterministic (same input, same bytes): no HashMap iteration
   order in results; parallel work writes in a fixed order.
 - The converter is a library too (`src/lib.rs`, every module `pub`) for
