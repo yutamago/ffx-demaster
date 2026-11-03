@@ -103,12 +103,27 @@ pub struct Built {
 /// The PS2 cursor (0x001fe800, kind 0): meswin shape 45's parts, the ball (part 0) in dum75's
 /// colour, the hand in grey.
 fn cursor(l: &mut List, x: i32, y: i32, dum75: u32) {
-    l.c(SHAPE_PART, &[45, 0, f(x as f32), f(y as f32), 0, 0, dum75, dum75]);
-    l.c(SHAPE_PART, &[45, 1, f(x as f32), f(y as f32), 0, 0, GREY, GREY]);
+    for (f, a) in cursor_parts(x, y, dum75) {
+        l.c(f, &a);
+    }
 }
 
-pub fn build(cx: &mut Ctx, scratch: [u32; 3], ps2_name: u32) -> ffx_harness::Result<Built> {
-    // the atlas swap: TOGetShapTextureName(0x3e00) answers from a table slot
+/// Shape 45's parts at their offsets with their sizes given: TOMkpShapePartIndexXYWHC2 then keeps
+/// the UVs one texel inside the cell, as the PS2 sprite (u + w - 1) does; with w = h = 0 it would
+/// sample the neighbouring cells' edge texels.
+fn cursor_parts(x: i32, y: i32, dum75: u32) -> [(u32, Vec<u32>); 2] {
+    let p = |dx: i32, dy: i32, w: f32, h: f32| [f((x + dx) as f32), f((y + dy) as f32), f(w), f(h)];
+    let (a, b) = (p(-42, -11, 40.0, 40.0), p(-34, -3, 40.0, 24.0));
+    [
+        (SHAPE_PART, vec![45, 0, a[0], a[1], a[2], a[3], dum75, dum75]),
+        (SHAPE_PART, vec![45, 1, b[0], b[1], b[2], b[3], GREY, GREY]),
+    ]
+}
+
+/// The atlas swap: TOGetShapTextureName(0x3e00) answers from a table slot (0x00c59d58..); the
+/// lists store the PS2 atlas's name there around their draws, as the mod's hook answers.
+/// Returns the slot (absolute) and the meswin name it holds.
+pub fn atlas_slot(cx: &mut Ctx) -> ffx_harness::Result<(u32, u32)> {
     let orig = cx.call(SHAPE_NAME, &[0x3e00])?;
     let table = cx.game.read(0x00c5_9d58, 0x168)?;
     let slot = (0..table.len() / 4)
@@ -116,6 +131,23 @@ pub fn build(cx: &mut Ctx, scratch: [u32; 3], ps2_name: u32) -> ffx_harness::Res
         .map(|k| cx.abs(0x00c5_9d58 + 4 * k as u32))
         .expect("meswin name slot");
     eprintln!("meswin name {orig:#x} slot {slot:#x}");
+    Ok((slot, orig))
+}
+
+/// The PS2 cursor at (x, y) in place of a TOMakePktShapeCursor(0, x, y), as absolute call records
+/// (the mod's TOMakePktShapeCursor hook).
+pub fn ps2_cursor_calls(cx: &mut Ctx, x: i32, y: i32, name: u32) -> ffx_harness::Result<Vec<(u32, Vec<u32>)>> {
+    let (slot, orig) = atlas_slot(cx)?;
+    let ball = cx.r32(0x025d_16ac)?;
+    // TODrawBtlWindow draws the cursors after TODrawScissorXYWH(0, 0, 512, 416)
+    let mut v = vec![(cx.abs(0x008f_dee0), vec![0, 0, 512, 416]), (2, vec![slot, name])];
+    v.extend(cursor_parts(x, y, ball).into_iter().map(|(f, a)| (cx.abs(f), a)));
+    v.push((2, vec![slot, orig]));
+    Ok(v)
+}
+
+pub fn build(cx: &mut Ctx, scratch: [u32; 3], ps2_name: u32) -> ffx_harness::Result<Built> {
+    let (slot, orig) = atlas_slot(cx)?;
     let dum75 = cx.r32(0x025d_16ac)?;
 
     // ---- main draw (PS2 0x0024a4a8)

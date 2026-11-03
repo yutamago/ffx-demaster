@@ -107,7 +107,7 @@ fn main() -> ffx_harness::Result<()> {
                     println!("@alloc {} -> {p:#x}", words[1]);
                 }
                 "@ps2btl" => {
-                    // @ps2btl <window index> <THUNK var> [centred]
+                    // @ps2btl <window index> <THUNK var> [centred] [ps2cursor NAME]
                     let t = vars[words[2]];
                     // a number, or k<kind>: the first open window of that kind
                     let i: u32 = if let Some(k) = words[1].strip_prefix('k') {
@@ -123,7 +123,14 @@ fn main() -> ffx_harness::Result<()> {
                         words[1].parse().unwrap()
                     };
                     let w = (0x0133c950 + 0xf0 * i).wrapping_add(delta);
-                    let list = btl::ps2btl(&mut game, delta, w, t + 0x80, words.get(3) == Some(&"centred"))?;
+                    let mut list = btl::ps2btl(&mut game, delta, w, t + 0x80, words.contains(&"centred"))?;
+                    // ps2cursor NAME: the PS2 cursor (the mod's TOMakePktShapeCursor hook) instead of
+                    // TOBtlSetCurPos, which the game would draw as the HD hand
+                    if let Some(k) = words.iter().position(|w| *w == "ps2cursor") {
+                        let (_, a) = list.pop().expect("cursor call");
+                        let mut cx = menu::Ctx { game: &mut game, delta };
+                        list.extend(menu::ps2_cursor_calls(&mut cx, a[1] as i32, a[2] as i32, vars[words[k + 1]])?);
+                    }
                     for (f, a) in &list {
                         println!("  call {:#x} {:x?}", f.wrapping_sub(delta), a);
                     }
