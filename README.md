@@ -159,6 +159,33 @@ draw callback (`tools/replays/ui-battle-*.txt`, `docs/ui.md`). `FFX_HOOK_LOG_OPE
 mod show as `mods:`. Don't set `SHOTRUN_ORIGINAL`: it turns off the hook that
 serves the mod files.
 
+### PS2 vs Demaster (`tools/compare`)
+
+`tools/compare` puts the PS2 original, running in PCSX2, next to the
+Demaster for the same scene ([`docs/compare.md`](docs/compare.md)): per
+scene an exact view (PCSX2's software renderer at 512x416 against the
+Demaster scaled down) and a detail view (the hardware renderer upscaled
+from a GS dump of the same frame against the Demaster at full size), each
+PS2 | Demaster | difference, with numbers per screen region. PCSX2
+(portable, `C:\_workspaces\pcsx2`) is driven by `pcsx2ctl.exe`
+(`tools/build-pcsx2ctl.sh`): PINE for memory and save states, keys posted
+to its window for the pad and the hotkeys, PCSX2's own screenshots and GS
+dumps. The PC saves the replays use go on a PCSX2 folder memory card as PS2
+saves (the formats are the same).
+
+```bash
+tools/build-pcsx2ctl.sh                                         # once
+uv run python -I tools/compare/setup.py /mnt/c/_workspaces/pcsx2 <PC save folder> 1 5   # once
+tools/compare/pcsx2.sh start; tools/compare/pcsx2.sh ctl run '<Windows path of tools\compare\states.txt>'; tools/compare/pcsx2.sh stop   # once: save states
+target/release/demaster ui /tmp/dm-ffx.iso ~/steam-games/FFX-X2-HD/data/FFX_Data.vbf ~/ffx-work/demaster/scratch/compare-ui
+uv run --with pillow --with numpy python -I tools/compare/compare.py all [replay...]
+```
+
+`compare.py ps2`, `hw`, `pc` and `diff` run the steps alone (one game at a
+time); the PNGs and `report.tsv` land in `/mnt/c/shots/compare/`.
+`tools/compare/pcsx2.sh start|stop|ctl` runs PCSX2 by hand (stop ends it by
+PID).
+
 A real Fahrenheit install for manual tests: `C:\_workspaces\fh-demaster-test`
 (alpha12, mod `yuta.demaster`, game copy without the ffx-rust hook in
 `~/ffx-work/demaster/game`). Its `run.ps1 -Seconds N` starts the game through
