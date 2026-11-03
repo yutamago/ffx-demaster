@@ -1,0 +1,49 @@
+# ui.menus = ps2, Config: what mod/ConfigMenuPatches.cs draws, through tools/calllist (docs/ui.md,
+# "The Config screen"). Give the converter's ui output (efl/x) as the mod. From save slot 1
+# (salvage ship deck): open the menu, Config (the 6th option); shoot the HD screen; load the PS2
+# atlas and fonts, the PS2 background gradient (@ps2bg), point the config menu record's draw at a
+# call list of the PS2 draw (@ps2screen config), shoot; the 4:3 write and a shot. Then the cursor
+# two rows down and the value moved (right), the list built again, and a shot. The help bar stays HD.
+load direct 1 cdsp0000 lockstep
+lockstep on
+pin
+wait 120
+press triangle 4 40
+press down 4 15
+press down 4 15
+press down 4 15
+press down 4 15
+press down 4 15
+press circle 4 40
+wait 20
+shot $OUT\config-1-hd.bmp
+@base
+@alloc N 4096
+write {N} 2f4646585f446174612f47616d65446174612f505333446174612f6d656e755f75732f44334431312f70733277696e2e6464732e706879726500
+call 0x006651d0 {=N}
+@alloc F 4096
+write {F} 2f4646585f446174612f47616d65446174612f505333446174612f6d656e755f75732f44334431312f707332666e742e6464732e706879726500
+call 0x006651d0 {=F}
+wait 20
+@alloc G 4096
+@thunk G
+@alloc S 4096
+@protect S 0x008f5c00 128
+@ps2bg G
+@alloc O 4096
+@alloc T 65536
+@thunk T
+@ps2screen config O N F T
+wait 2
+shot $OUT\config-2-ps2.bmp
+write 0x00c34154 abaaaa3f
+wait 2
+shot $OUT\config-3-ps2-43.bmp
+write 0x00c34154 398ee33f
+press down 4 15
+press down 4 15
+press right 4 15
+wait 10
+@ps2screen config O N F T
+wait 2
+shot $OUT\config-4-moved-ps2.bmp
