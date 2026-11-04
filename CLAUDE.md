@@ -145,8 +145,10 @@ Capturing its window with wincap: end it with `taskkill.exe /PID` (a WSL
   ISO and game copy through `\\wsl.localhost`. Launch from WSL with
   `cd .../bin && timeout 45 ./fhstage0.exe '\\wsl.localhost\Ubuntu\home\angelo\ffx-work\demaster\game\FFX.exe'`
   (the sandbox refuses `cmd.exe`/`powershell.exe`). The WSL `timeout`
-  does NOT end the Windows game: note the FFX.exe/fhstage0.exe PIDs that
-  appear and end them with `taskkill.exe /PID <pid> /F` (a forgotten game ran
+  does NOT end the Windows game: end the fhstage0.exe you started with
+  `taskkill.exe /PID <pid> /F` (its FFX.exe closes with it; harness games run
+  without fhstage0, so the new fhstage0 is yours; never pick "the newest
+  FFX.exe", other agents start games too) (a forgotten game ran
   for 8 hours on 2026-11-03), then read `logs/<newest>/Yuta.Demaster.DemasterModule.log` and
   count "replaces file" in `Fahrenheit.Runtime.FhFileLoaderModule.log`.
   Other agents run their own FFX.exe instances: never kill FFX by name.
