@@ -1,0 +1,25 @@
+# ui.menus = ps2, the sphere grid: the PS2 pages of jppc/menu/abmap/dat00.dat in the HD names
+# menu/abmap/dat00/tex/d3d11/<TBP>_19 and aio (converter, sgjob.rs; docs/ui.md, "The sphere
+# grid"). A texture swap, so no calllist commands: run it once without a mod (HD) and once with the
+# converter's ui output (efl/x) as the mod, and compare the shots. From save slot 1 (salvage ship
+# deck): the main menu, Sphere Grid (its first entry), the grid with Tidus's panel; then the
+# command menu (Move / Use / ...); the 4:3 write. Key presses are a best guess (unchecked).
+load direct 1 cdsp0000 lockstep
+lockstep on
+pin
+wait 120
+press triangle 4 40
+press circle 4 40
+wait 150
+shot $OUT\sg-1-grid.bmp
+press circle 4 40
+wait 30
+shot $OUT\sg-2-commands.bmp
+write 0x00c34154 abaaaa3f
+wait 2
+shot $OUT\sg-3-commands-43.bmp
+press cross 4 30
+wait 30
+press left 30 0
+wait 30
+shot $OUT\sg-4-moved.bmp

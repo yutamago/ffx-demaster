@@ -28,6 +28,7 @@ pub fn build(cx: &mut Ctx, screen: &str, env: &Env, scratch: &[u32]) -> ffx_harn
         "config" => crate::config::build(cx, env, scratch),
         "overdrive" => crate::overdrive::build(cx, env, scratch),
         "customize" => crate::customize::build(cx, env, scratch),
+        "worldmap" => crate::worldmap::build(cx, env, scratch),
         _ => panic!("unknown screen {screen}"),
     }
 }
