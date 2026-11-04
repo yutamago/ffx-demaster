@@ -140,3 +140,9 @@ Capturing its window with wincap: end it with `taskkill.exe /PID` (a WSL
   fhstage0), then read `logs/<newest>/Yuta.Demaster.DemasterModule.log` and
   count "replaces file" in `Fahrenheit.Runtime.FhFileLoaderModule.log`.
   Other agents run their own FFX.exe instances: never kill FFX by name.
+- PS2 debugger (`docs/debugger.md`): PCSX2 2.8.2 + DebugServer in
+  `C:\_workspaces\pcsx2-debug` (TCP 21512, PINE 28011), MCP server `pcsx2`
+  (`~/tools/pcsx2-mcp`, local scope): breakpoints, watchpoints, registers,
+  disassembly, backtrace on the running PS2 game. Start it with
+  `PCSX2=/mnt/c/_workspaces/pcsx2-debug tools/compare/pcsx2.sh start|stop`;
+  one PCSX2 at a time.
