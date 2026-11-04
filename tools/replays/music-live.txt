@@ -1,0 +1,23 @@
+# The live music engine (docs/music.md, "Phase 2") in the harness: after
+# the load the
+# replay waits until demaster_live.dll is in (`tools/live-test.sh` injects
+# it with live-inject.exe; the DLL writes "LIVE" at 0x00400070), then as
+# music-battle.txt: save 5 (Djose highroad), the original soundtrack
+# switched on (the save's byte 0x0112ca90 + 0x5ec, iMusicRefreshBgmType),
+# 20 s of the field's music, a battle (genk16_03) and 30 s of it. With
+# FFX_AUDIO_WAV the capture runs from `audiomark start` to `audiomark end`.
+load direct 5 kami0100 lockstep
+lockstep on
+waitfor 0x00400070:4 4c495645 ffffffff 100000
+wait 10
+write 0x0112d07c 01
+callnext 0x008cc170
+wait 10
+audiomark start
+wait 600
+audiomark battle
+battle 33 0 3
+waitfor 0x0112a8e0:1 01 ff 4000
+wait 900
+audiomark end
+shot $OUT\music-live-battle.bmp

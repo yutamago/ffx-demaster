@@ -1,0 +1,36 @@
+# The live music engine through a whole battle (docs/music.md, "Phase
+# 2"): after the load, waits for demaster_live.dll ("LIVE" at 0x00400070, tools/live-test.sh),
+# save 1 (the salvage ship, cdsp0000), the original soundtrack switched on,
+# 10 s of the field's music, the first formation (attacked twice, as
+# ffx-rust's battle-attack.txt: both enemies fall), the victory fanfare,
+# the results closed with circle, and 20 s back on the field.
+load direct 1 cdsp0000 lockstep
+lockstep on
+waitfor 0x00400070:4 4c495645 ffffffff 100000
+wait 10
+write 0x0112d07c 01
+callnext 0x008cc170
+wait 10
+audiomark start
+wait 300
+audiomark battle
+battle 3 0 0
+waitfor 0x0112a8e0:1 01 ff 4000
+wait 60
+press circle 4 30
+press circle 4 400
+press circle 4 30
+press circle 4 400
+audiomark fanfare
+wait 300
+shot $OUT\music-live-victory-1.bmp
+press circle 4 60
+press circle 4 60
+press circle 4 60
+press circle 4 60
+press circle 4 60
+press circle 4 60
+audiomark field
+wait 600
+shot $OUT\music-live-victory-2.bmp
+audiomark end

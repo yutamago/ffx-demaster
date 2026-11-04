@@ -1,0 +1,43 @@
+# The live music engine: field music, a battle and back (docs/music.md,
+# "Phase 2"). After the load, waits for demaster_live.dll ("LIVE" at 0x00400070,
+# tools/live-test.sh), save 5 (Djose highroad, kami0100: Spira Unplugged),
+# the original soundtrack switched on, 10 s of field music, a battle
+# (genk16_03) whose monsters (actors 0x14-0x16 of *0x011334d4, 0xf90
+# bytes each, HP at +0x5d0) get 1 HP and fall to three attacks, the
+# victory fanfare, the results closed with circle, 30 s on the field: the
+# field music the battle paused (the game's replay point) comes back.
+load direct 5 kami0100 lockstep
+lockstep on
+waitfor 0x00400070:4 4c495645 ffffffff 100000
+wait 10
+write 0x0112d07c 01
+callnext 0x008cc170
+wait 10
+audiomark start
+wait 300
+audiomark battle
+battle 33 0 3
+waitfor 0x0112a8e0:1 01 ff 4000
+writep 0x011334d4 0x13d10 01000000
+writep 0x011334d4 0x14ca0 01000000
+writep 0x011334d4 0x15c30 01000000
+wait 60
+press circle 4 30
+press circle 4 400
+press circle 4 30
+press circle 4 400
+press circle 4 30
+press circle 4 400
+audiomark fanfare
+wait 200
+shot $OUT\music-live-return-1.bmp
+press circle 4 60
+press circle 4 60
+press circle 4 60
+press circle 4 60
+press circle 4 60
+press circle 4 60
+audiomark field
+wait 900
+shot $OUT\music-live-return-2.bmp
+audiomark end
