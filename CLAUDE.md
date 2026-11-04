@@ -77,6 +77,11 @@ Plan and status: `docs/plan.md`. What differs: `docs/differences.md`.
   (port of `iopsound.irx`) on an SPU2 model, rendering the disc's
   `musicNNN.bgm` into the "Original" soundtrack bank (`docs/music.md`).
   `demaster music <iso> <vbf> <out> all|<id|name>`, `demaster music-bank`.
+- `livejob.rs` + `live/` (`demaster_live.dll`, 32-bit, `tools/build-live.sh`):
+  `audio.music_engine = "live"`, the PS2 driver playing in the game through
+  FFX.exe's FMOD event imports and an FMOD user stream (`docs/music.md`,
+  "Phase 2"). Test in the harness with `tools/live-test.sh <replay> <mod>/music
+  /mnt/c/...` (`tools/replays/music-live*.txt`; it injects the DLL).
 - `bgjob.rs`: 2D-room background layers (`docs/screen.md`).
   `demaster backgrounds <iso> <vbf> <out> all|<map>`.
 - `shaderjob.rs`, `dxbc.rs`: the character pixel shaders with the PS2 light

@@ -1,0 +1,29 @@
+# The live music engine's other commands, called through the game's own
+# functions (docs/music.md, "Phase 2"): save 5 (Djose highroad, Spira
+# Unplugged), the original soundtrack on, then after 5 s
+# SndMusicTempoTranslate(120, -128) (0x00886aa0, as bsil0000's script:
+# the music slows to half over 2 s), 5 s later SndMusicTempoDirect(0)
+# (0x00886a90), then iMusicSetPaused(1) (0x0067a1c0, FMOD command 0x2f:
+# FmodMusic::pauseAll) for 3 s and (0). tools/live-test.sh injects the DLL.
+load direct 5 kami0100 lockstep
+lockstep on
+waitfor 0x00400070:4 4c495645 ffffffff 100000
+wait 10
+write 0x0112d07c 01
+callnext 0x008cc170
+wait 10
+audiomark start
+wait 150
+audiomark slow
+callnext 0x00886aa0 120 128
+wait 150
+audiomark normal
+callnext 0x00886a90 0
+wait 150
+audiomark pause
+callnext 0x0067a1c0 1
+wait 90
+audiomark resume
+callnext 0x0067a1c0 0
+wait 150
+audiomark end
