@@ -38,10 +38,20 @@ impl Ctx<'_> {
     }
     /// The words mod Ps2Menu.ps2_sized sets: (VA, the PS2 value, the value now).
     pub fn size_words(&mut self) -> ffx_harness::Result<Vec<(u32, u32, u32)>> {
-        let lang = self.call(FFX_LANG, &[])? as i32;
+        let ps2font = *PS2FONT.lock().unwrap();
+        let lang = if ps2font.is_some() { 0 } else { self.call(FFX_LANG, &[])? as i32 };
         let mut out = vec![];
         for (va, v) in SIZE_WORDS.iter().zip(ps2_size_values(lang)) {
             out.push((*va, v.to_bits(), self.r32(*va)?));
+        }
+        // @ps2font: mod Ps2Menu.font_info's flag (no glyph y offset) and the line feed 20 (not 16)
+        if let Some(s) = ps2font {
+            let lf20 = 20f64.to_bits();
+            let lf16 = 16f64.to_bits();
+            let va = |a: u32| a.wrapping_sub(self.delta);
+            out.push((va(s), 1, 0));
+            out.push((va(s + 8), lf20 as u32, lf16 as u32));
+            out.push((va(s + 12), (lf20 >> 32) as u32, (lf16 >> 32) as u32));
         }
         Ok(out)
     }
@@ -58,6 +68,9 @@ impl Ctx<'_> {
         Ok(i32::from(w? as u16 as i16))
     }
 }
+
+/// The scratch block of @ps2font (absolute): +0 the flag, +8 the line feed double.
+pub static PS2FONT: std::sync::Mutex<Option<u32>> = std::sync::Mutex::new(None);
 
 const TEXT_WIDTH: u32 = 0x008c_2cb0; // TkMn2StringWidth: TOGetMessageWH's width (low half)
 const FFX_LANG: u32 = 0x0064_10e0; // TOGetFFXLang

@@ -27,6 +27,16 @@ waitfor 0x0112ca90:4 17005d01 ffffffff 600
 waitfor 0x01325d94:4 00000000 c0ffffff 600
 waitfor 0x01325d94:4 40000000 c0ffffff 600
 shotwhen 0x01325d94:4 6c000000 fcffffff 600 $OUT\title-1.bmp
+# the choice cursor as mod MainMenuPatches.cross_cursor draws it: the PS2 hand and ball (meswin
+# shape 45 from ps2win) at the choice's pen, in place of the small HD cursor
+@alloc N 4096
+write {N} 2f4646585f446174612f47616d65446174612f505333446174612f6d656e755f75732f44334431312f70733277696e2e6464732e706879726500
+call 0x006651d0 {=N}
+wait 20
+@alloc C 65536
+@protect S 0x008b6000 4096
+@ps2select C N
+wait 2
 write 0x00c34154 abaaaa3f
 wait 2
 shot $OUT\title-2-43.bmp

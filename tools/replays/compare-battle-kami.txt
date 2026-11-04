@@ -17,6 +17,10 @@ waitfor 0x0112a8e0:1 01 ff 4000
 wait 60
 shot $OUT\btl-1-hd.bmp
 @base
+# the PS2 text line (mod Ps2Menu.install: no glyph y offset, 20-line line feeds)
+@alloc YF 4096
+@protect YF 0x008e9000 4096
+@ps2font YF
 @alloc T 65536
 @thunk T
 @alloc N 4096

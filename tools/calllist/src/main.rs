@@ -13,6 +13,7 @@
 //!                         overdrive, customize) through thunks T1..; O scratch, N / F the ps2win /
 //!                         ps2fnt names
 //!   @ps2help H N          the main menu's help bar (items::help) through thunk H
+//!   @ps2font S            the PS2 text line: no glyph y offset, 20-line line feeds (mod Ps2Menu.install)
 //!   @ps2info I M N B F [S] the battle target info window and its help-bar line (hud::info, info_mes)
 //!   @ps2limit T A L R B   the Overdrive mini-game windows (limit.rs): Tidus, Auron, Lulu, the timer
 //!                         through thunks T, A, L, R (jmps at the PC draws); B the ps2btl name
@@ -426,6 +427,43 @@ fn main() -> ffx_harness::Result<()> {
                     }
                     println!("{}", game.command("write 0x8a1ce0 c3")?);
                     println!("{}", game.command("write 0x8a1e50 31c0c3")?);
+                }
+                "@ps2select" => {
+                    // @ps2select T N: the message choice cursor as mod MainMenuPatches.cross_cursor draws
+                    // it: TODrawSelectCursor's call of TkMn2DrawCrossCursor (0x008b61e2) goes to thunk T,
+                    // which draws the PS2 cursor (ps2win N) at the choice's pen as the game last laid it
+                    // out, at (x - 9, y): x f32 0x025d09a4, y f32 0x025d09a8 - 12. The page must be writable (@protect).
+                    let [t, n] = [1, 2].map(|k| vars[words[k]]);
+                    let b = game.read(0x025d_09a4, 8)?;
+                    let x = f32::from_le_bytes(b[0..4].try_into().unwrap());
+                    let y = f32::from_le_bytes(b[4..8].try_into().unwrap()) - 12.0;
+                    println!("@ps2select at {x}, {y}");
+                    let calls = {
+                        let mut cx = menu::Ctx { game: &mut game, delta };
+                        menu::ps2_cursor_calls(&mut cx, x as i32 - 9, y as i32, n)?
+                    };
+                    game.command(&format!("write {:#x} {}", (t + 0x100).wrapping_sub(delta), btl::encode(&calls)))?;
+                    game.command(&format!("write {:#x} {THUNK}", t.wrapping_sub(delta)))?;
+                    let site = 0x008b_61e2u32;
+                    println!("{}", game.command(&format!("write {site:#x} e8{}", le(t.wrapping_sub(site.wrapping_add(delta) + 5))))?);
+                }
+                "@ps2font" => {
+                    // @ps2font S: mod Ps2Menu.install for the 16x12 font calls of the lists: the call
+                    // of TOGetFontInfo in TOAddPktBaseMesFontLClutTypeRGBA (0x008e9360) goes through a
+                    // stub at S + 0x20 that zeroes the glyph's y offset (+0x18) while the flag at S is
+                    // set, and the line feed's fadd (0x008e9403) reads the double at S + 8 (16.0; 20.0
+                    // around the PS2 texts: Ctx::size_words). The page must be writable (@protect).
+                    let s = vars[words[1]];
+                    let stub = s + 0x20;
+                    let info_fn = 0x008b_7240u32.wrapping_add(delta);
+                    let rel = info_fn.wrapping_sub(stub + 8 + 5);
+                    let code = format!("ff742408ff742408e8{}83c408833d{}00740b8b4c2408c7411800000000c3", le(rel), le(s));
+                    game.command(&format!("write {:#x} 00000000000000000000000000003040", s.wrapping_sub(delta)))?;
+                    game.command(&format!("write {:#x} {code}", stub.wrapping_sub(delta)))?;
+                    let site = 0x008e_9360u32;
+                    println!("{}", game.command(&format!("write {site:#x} e8{}", le(stub.wrapping_sub(site.wrapping_add(delta) + 5))))?);
+                    println!("{}", game.command(&format!("write {:#x} {}", 0x008e_9405u32, le(s + 8)))?);
+                    *menu::PS2FONT.lock().unwrap() = Some(s);
                 }
                 "@ps2info" => {
                     // @ps2info I M N B F [SCROLL]: the target info window (thunk I in place of
