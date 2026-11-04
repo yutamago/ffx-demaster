@@ -190,14 +190,14 @@ pub fn ps2_cursor_calls(cx: &mut Ctx, x: i32, y: i32, name: u32) -> ffx_harness:
 /// part, (0, 112) 160 x 16 at dx -32, from the PS2 battle atlas `name`) where the battle sequence
 /// puts it at rest, (46, 318) in 0x80808080; and the four battle words (TOMakePktBtlIconA kinds
 /// 0..3) from their PS2 places in `icon` at the PS2 size, at (200, 120 + 30 k).
-pub fn od_tab_calls(cx: &mut Ctx, name: u32) -> ffx_harness::Result<Vec<(u32, Vec<u32>)>> {
+pub fn od_tab_calls(cx: &mut Ctx, name: u32, words: bool) -> ffx_harness::Result<Vec<(u32, Vec<u32>)>> {
     let (slot, orig) = sheet_slot(cx, 0x3f00)?;
     let c = 0x8080_8080;
     let mut v = vec![(cx.abs(0x008f_dee0), vec![0, 0, 512, 416]), (2, vec![slot, name])];
     v.push((cx.abs(SHAPE_PART), vec![413, 0, f(46.0 - 32.0), f(318.0), f(160.0), f(16.0), c, c]));
     v.push((2, vec![slot, orig]));
     const WORDS: [[u32; 4]; 4] = [[0, 110, 164, 127], [164, 96, 231, 118], [55, 96, 152, 110], [0, 96, 45, 106]];
-    for (k, r) in WORDS.iter().enumerate() {
+    for (k, r) in WORDS.iter().enumerate().filter(|_| words) {
         let (x, y) = (200.0, 120.0 + 30.0 * k as f32);
         let uv = r.map(|t| f(4.0 * t as f32));
         v.push((cx.abs(0x0090_3ee0), vec![600, f(x), f(y), f((r[2] - r[0]) as f32), f((r[3] - r[1]) as f32), uv[0], uv[1], uv[2], uv[3], c, c]));

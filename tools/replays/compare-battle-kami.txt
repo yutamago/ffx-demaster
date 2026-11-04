@@ -4,7 +4,10 @@
 # PS2's memory: PS2 0x00318c76 u16 field, +2 group, +3 formation, +4 the
 # field's name, = PC 0x0112c256). The same battle here, then the main
 # command window drawn the PS2 way through calllist as in
-# ui-battle-main.txt (give the converter's ui output as the mod).
+# ui-battle-main.txt (give the converter's ui output as the mod), the Overdrive
+# tab (BattleSeqPatches) and the HUD as BattleHudPatches draws it (@ps2hud: jumps
+# at the PC draws' entries, so the game's own code has to run: scenes.toml
+# pc_env FFX_HOOK_DISABLE=replacements).
 load direct 5 kami0100 lockstep
 lockstep on
 pin
@@ -14,13 +17,29 @@ waitfor 0x0112a8e0:1 01 ff 4000
 wait 60
 shot $OUT\btl-1-hd.bmp
 @base
-@alloc T 4096
+@alloc T 65536
 @thunk T
 @alloc N 4096
 write {N} 2f4646585f446174612f47616d65446174612f505333446174612f6d656e755f75732f44334431312f70733277696e2e6464732e706879726500
 call 0x006651d0 {=N}
 wait 20
-@ps2btl 0 T centred ps2cursor N
+@alloc B 4096
+write {B} 2f4646585f446174612f47616d65446174612f505333446174612f6d656e755f75732f44334431312f70733262746c2e6464732e706879726500
+call 0x006651d0 {=B}
+wait 20
+@alloc F 4096
+write {F} 2f4646585f446174612f47616d65446174612f505333446174612f6d656e755f75732f44334431312f707332666e742e6464732e706879726500
+call 0x006651d0 {=F}
+wait 20
+@alloc S 4096
+@alloc H 65536
+@alloc C 65536
+@alloc P 65536
+@protect S 0x00893000 4096
+@protect S 0x008a0000 4096
+@protect S 0x00896000 4096
+@ps2hud H C P N B F
+@ps2btl 0 T centred ps2cursor N tab B footer B
 wait 1
 shot $OUT\btl-2-ps2.bmp
 write 0x00c34154 abaaaa3f

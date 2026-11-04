@@ -20,6 +20,7 @@ mod btl;
 mod config;
 mod customize;
 mod equip;
+mod hud;
 mod items;
 mod menu;
 mod overdrive;
@@ -146,9 +147,23 @@ fn main() -> ffx_harness::Result<()> {
                         list.extend(menu::ps2_cursor_calls(&mut cx, a[1] as i32, a[2] as i32, vars[words[k + 1]])?);
                     }
                     // odtab NAME: the Overdrive tab and battle words as BattleSeqPatches draws them
-                    if let Some(k) = words.iter().position(|w| *w == "odtab") {
+                    // (tab NAME: the tab alone)
+                    if let Some(k) = words.iter().position(|w| *w == "odtab" || *w == "tab") {
                         let mut cx = menu::Ctx { game: &mut game, delta };
-                        list.extend(menu::od_tab_calls(&mut cx, vars[words[k + 1]])?);
+                        list.extend(menu::od_tab_calls(&mut cx, vars[words[k + 1]], words[k] == "odtab")?);
+                    }
+                    // footer NAME: the battle sequence scenes BattleSeqPatches starts and draws, at rest
+                    // (hud::footer): layer 0 before the window's draw, layer 1 after it
+                    if let Some(k) = words.iter().position(|w| *w == "footer") {
+                        let mut cx = menu::Ctx { game: &mut game, delta };
+                        let (a, b) = hud::footer(&mut cx, t + 0x800, vars[words[k + 1]])?;
+                        let rebase = |l: &menu::List| -> Vec<(u32, Vec<u32>)> {
+                            l.calls.iter().map(|(f, a)| (if *f > 3 { f.wrapping_add(delta) } else { *f }, a.clone())).collect()
+                        };
+                        let mut all = rebase(&a);
+                        all.append(&mut list);
+                        all.extend(rebase(&b));
+                        list = all;
                     }
                     for (f, a) in &list {
                         println!("  call {:#x} {:x?}", f.wrapping_sub(delta), a);
@@ -320,6 +335,72 @@ fn main() -> ffx_harness::Result<()> {
                         let r = game.command(&format!("call {f:#x} 1 {at:#x}"))?;
                         println!("{} {n} -> {r}", words[0]);
                     }
+                }
+                "@detour" => {
+                    // @detour SITE T HEX: the call at SITE (e8 rel32, an ffx.sym VA) goes to T, which
+                    // runs HEX and jumps on to the original target (as a mod hook in front of the
+                    // callee; the page must be writable: @protect)
+                    let site = u32::from_str_radix(words[1].trim_start_matches("0x"), 16).unwrap();
+                    let t = vars[words[2]];
+                    let hex = words[3];
+                    let r = game.read(site + 1, 4)?;
+                    let rel = u32::from_le_bytes(r[..4].try_into().unwrap());
+                    let site_abs = site.wrapping_add(delta);
+                    let target = site_abs.wrapping_add(5).wrapping_add(rel);
+                    let jmp_at = t + (hex.len() / 2) as u32;
+                    let code = format!("{hex}e9{}", le(target.wrapping_sub(jmp_at + 5)));
+                    game.command(&format!("write {:#x} {code}", t.wrapping_sub(delta)))?;
+                    let call = le(t.wrapping_sub(site_abs + 5));
+                    println!("{}", game.command(&format!("write {site:#x} e8{call}"))?);
+                }
+                "@ps2hud" => {
+                    // @ps2hud H C P N B F: the battle HUD as mod BattleHudPatches draws it: the help bar
+                    // (thunk H in place of TOBtlDrawHelpWin) and the CTB list (thunk C in place of
+                    // TOBtlDrawCtbWindow) and the party list (thunk P in place of TOBtlDrawStatusWin): a
+                    // jmp at each function's entry (pages made writable with
+                    // @protect; needs the game's own code, FFX_HOOK_DISABLE=replacements). N / B the
+                    // ps2win / ps2btl names, F ps2fnt's. Thunks of 0x10000: lists at +0x100, strings at +0x8000.
+                    let [h, c, p, n, b, fnt] = [1, 2, 3, 4, 5, 6].map(|k| vars[words[k]]);
+                    let built = {
+                        let mut cx = menu::Ctx { game: &mut game, delta };
+                        let (help, on) = hud::help(&mut cx, h + 0x8000, n)?;
+                        let ctb = hud::ctb(&mut cx, c + 0x8000, b)?;
+                        let party = hud::status(&mut cx, p + 0x8000, n, b, fnt)?;
+                        if on {
+                            let s = h + 0xf000;
+                            cx.game.command(&format!("write {:#x} 62686c696e6500", s.wrapping_sub(delta)))?;
+                            let r = cx.call(0x008a_f1b0, &[2, s])?;
+                            println!("@ps2hud bhline -> {r:#x}");
+                        }
+                        [(h, 0x008936d0u32, help), (c, 0x008a0590u32, ctb), (p, 0x00896450u32, party)]
+                    };
+                    for (t, fun, l) in built {
+                        let calls = menu::expand_shapes(&mut menu::Ctx { game: &mut game, delta }, &l.calls)?;
+                        for (a, s) in &l.strings {
+                            let hex: String = s.iter().map(|x| format!("{x:02x}")).collect();
+                            game.command(&format!("write {:#x} {hex}", a.wrapping_sub(delta)))?;
+                        }
+                        println!("@ps2hud {fun:#x}: {} calls", calls.len());
+                        game.command(&format!("write {:#x} {}", (t + 0x100).wrapping_sub(delta), menu::encode(&calls, delta)))?;
+                        game.command(&format!("write {:#x} {THUNK}", t.wrapping_sub(delta)))?;
+                        let at = fun.wrapping_add(delta);
+                        println!("{}", game.command(&format!("write {fun:#x} e9{}", le(t.wrapping_sub(at + 5))))?);
+                    }
+                }
+                "@deref" => {
+                    // @deref VA LEN [OFF HEX]...: LEN bytes (hex) at the absolute pointer stored at VA
+                    // (ffx.sym terms); then HEX written at pointer + OFF for each pair
+                    let va = u32::from_str_radix(words[1].trim_start_matches("0x"), 16).unwrap();
+                    let len: usize = words[2].parse().unwrap();
+                    let r = game.read(va, 4)?;
+                    let p = u32::from_le_bytes(r[..4].try_into().unwrap());
+                    for pair in words[3..].chunks(2) {
+                        let off = u32::from_str_radix(pair[0].trim_start_matches("0x"), 16).unwrap();
+                        game.command(&format!("write {:#x} {}", (p + off).wrapping_sub(delta), pair[1]))?;
+                    }
+                    let b = game.read_abs(p, len)?;
+                    let hex: String = b.iter().map(|x| format!("{x:02x}")).collect();
+                    println!("@deref {va:#x} -> {p:#x}: {hex}");
                 }
                 "@set" => {
                     let v = u32::from_str_radix(words[2].trim_start_matches("0x"), 16).unwrap();
