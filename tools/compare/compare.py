@@ -168,7 +168,7 @@ def calllist_manifest():
     if os.path.isdir(os.path.join(src, '..', '..', '..', 'ffx-decomp', 'crates')):
         return os.path.join(src, 'Cargo.toml')
     import shutil
-    dst = os.path.expanduser('~/ffx-work/demaster/scratch/calllist-build')
+    dst = os.path.expanduser(os.environ.get('CALLLIST_BUILD', '~/ffx-work/demaster/scratch/calllist-build'))
     os.makedirs(dst, exist_ok=True)
     for name in ('src', 'thunk.s', 'Cargo.lock'):
         a, b = os.path.join(src, name), os.path.join(dst, name)

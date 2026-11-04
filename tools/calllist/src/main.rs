@@ -9,10 +9,14 @@
 //!                         name, FNT the PS2 fonts' texture name (ps2fnt)
 //!   @ps2items L S A O NAME FNT [help H] [ability]  the PS2 item / ability list, sub-command bar and (ability)
 //!                         party plate (items.rs) through thunks L, S, A; O scratch for out parameters
-//!   @ps2screen SCREEN O N F T1 [T2 ...]  a main-menu sub-screen (screens.rs: equip, status, config,
+//!   @ps2screen SCREEN O N F T1 [T2 ...]  a main-menu sub-screen (screens.rs: equip, status, config, worldmap,
 //!                         overdrive, customize) through thunks T1..; O scratch, N / F the ps2win /
 //!                         ps2fnt names
 //!   @ps2help H N          the main menu's help bar (items::help) through thunk H
+//!   @ps2font S            the PS2 text line: no glyph y offset, 20-line line feeds (mod Ps2Menu.install)
+//!   @ps2info I M N B F [S] the battle target info window and its help-bar line (hud::info, info_mes)
+//!   @ps2limit T A L R B   the Overdrive mini-game windows (limit.rs): Tidus, Auron, Lulu, the timer
+//!                         through thunks T, A, L, R (jmps at the PC draws); B the ps2btl name
 //! Substitutions in any line: {NAME[+off]} -> the address in ffx.sym terms (what write/call/read
 //! take), {&NAME[+off]} -> its absolute value as 4 LE bytes (hex), {&va:0x...} -> a VA's absolute
 //! value as LE bytes, {=NAME} -> its absolute value as a number (a call argument), {f:1.5} -> f32 LE bytes, {i:-3} -> i32 LE bytes.
@@ -22,10 +26,12 @@ mod customize;
 mod equip;
 mod hud;
 mod items;
+mod limit;
 mod menu;
 mod overdrive;
 mod screens;
 mod status;
+mod worldmap;
 
 /// thunk.s assembled (as --32, objcopy -O binary).
 const THUNK: &str = "5589e5565753e8000000005e81c6f50000008b0685c0745d83f80175138b55088b4e0c8b0c0a8b5608890a83c610ebe283f802750d8b4e0c8b5608890a83c610ebd083f803750eff7508ff560883c40483c60cebbd8b5e0489d98d7c8e0485c97408ff3783ef0449ebf4ffd08d249c8d749e08eb9d5b5f5e5d31c0c3";
@@ -381,6 +387,105 @@ fn main() -> ffx_harness::Result<()> {
                             game.command(&format!("write {:#x} {hex}", a.wrapping_sub(delta)))?;
                         }
                         println!("@ps2hud {fun:#x}: {} calls", calls.len());
+                        game.command(&format!("write {:#x} {}", (t + 0x100).wrapping_sub(delta), menu::encode(&calls, delta)))?;
+                        game.command(&format!("write {:#x} {THUNK}", t.wrapping_sub(delta)))?;
+                        let at = fun.wrapping_add(delta);
+                        println!("{}", game.command(&format!("write {fun:#x} e9{}", le(t.wrapping_sub(at + 5))))?);
+                    }
+                }
+                "@ps2limit" => {
+                    // @ps2limit T A L R B: the Overdrive mini-game windows as mod BattleLimitPatches
+                    // draws them: thunks T (Tidus, TOBtlDrawTidusLimitWindow), A (Auron), L (Lulu), R
+                    // (the timer, 0x008955e0) behind a jmp at each PC draw's entry; TODrawLimitBG and
+                    // Wakka's frame return at once (the PS2 draws neither). Pages made writable with
+                    // @protect (0x00892000, 0x00895000, 0x00897000, 0x008a1000); the game's own code
+                    // has to run (FFX_HOOK_DISABLE=replacements). Thunks of 0x10000: lists at +0x100,
+                    // strings at +0x8000, Lulu's keyboard text at +0xf000. B the ps2btl name.
+                    let [tt, at, lt, rt, b] = [1, 2, 3, 4, 5].map(|k| vars[words[k]]);
+                    let built = {
+                        let mut cx = menu::Ctx { game: &mut game, delta };
+                        let ti = limit::tidus(&mut cx, tt + 0x8000, b)?;
+                        let au = limit::auron(&mut cx, at + 0x8000)?;
+                        let lu = limit::lulu(&mut cx, lt + 0x8000, b, lt + 0xf000)?;
+                        let tm = limit::timer(&mut cx, rt + 0x8000, b)?;
+                        [(tt, 0x0089_7240u32, ti), (at, 0x0089_2740, au), (lt, 0x0089_5660, lu), (rt, 0x0089_55e0, tm)]
+                    };
+                    for (t, fun, l) in built {
+                        let calls = menu::expand_shapes(&mut menu::Ctx { game: &mut game, delta }, &l.calls)?;
+                        for (a, s) in &l.strings {
+                            let hex: String = s.iter().map(|x| format!("{x:02x}")).collect();
+                            game.command(&format!("write {:#x} {hex}", a.wrapping_sub(delta)))?;
+                        }
+                        for (f, a) in &calls {
+                            println!("  call {f:#x} {a:x?}");
+                        }
+                        println!("@ps2limit {fun:#x}: {} calls", calls.len());
+                        game.command(&format!("write {:#x} {}", (t + 0x100).wrapping_sub(delta), menu::encode(&calls, delta)))?;
+                        game.command(&format!("write {:#x} {THUNK}", t.wrapping_sub(delta)))?;
+                        let at = fun.wrapping_add(delta);
+                        println!("{}", game.command(&format!("write {fun:#x} e9{}", le(t.wrapping_sub(at + 5))))?);
+                    }
+                    println!("{}", game.command("write 0x8a1ce0 c3")?);
+                    println!("{}", game.command("write 0x8a1e50 31c0c3")?);
+                }
+                "@ps2select" => {
+                    // @ps2select T N: the message choice cursor as mod MainMenuPatches.cross_cursor draws
+                    // it: TODrawSelectCursor's call of TkMn2DrawCrossCursor (0x008b61e2) goes to thunk T,
+                    // which draws the PS2 cursor (ps2win N) at the choice's pen as the game last laid it
+                    // out, at (x - 9, y): x f32 0x025d09a4, y f32 0x025d09a8 - 12. The page must be writable (@protect).
+                    let [t, n] = [1, 2].map(|k| vars[words[k]]);
+                    let b = game.read(0x025d_09a4, 8)?;
+                    let x = f32::from_le_bytes(b[0..4].try_into().unwrap());
+                    let y = f32::from_le_bytes(b[4..8].try_into().unwrap()) - 12.0;
+                    println!("@ps2select at {x}, {y}");
+                    let calls = {
+                        let mut cx = menu::Ctx { game: &mut game, delta };
+                        menu::ps2_cursor_calls(&mut cx, x as i32 - 9, y as i32, n)?
+                    };
+                    game.command(&format!("write {:#x} {}", (t + 0x100).wrapping_sub(delta), btl::encode(&calls)))?;
+                    game.command(&format!("write {:#x} {THUNK}", t.wrapping_sub(delta)))?;
+                    let site = 0x008b_61e2u32;
+                    println!("{}", game.command(&format!("write {site:#x} e8{}", le(t.wrapping_sub(site.wrapping_add(delta) + 5))))?);
+                }
+                "@ps2font" => {
+                    // @ps2font S: mod Ps2Menu.install for the 16x12 font calls of the lists: the call
+                    // of TOGetFontInfo in TOAddPktBaseMesFontLClutTypeRGBA (0x008e9360) goes through a
+                    // stub at S + 0x20 that zeroes the glyph's y offset (+0x18) while the flag at S is
+                    // set, and the line feed's fadd (0x008e9403) reads the double at S + 8 (16.0; 20.0
+                    // around the PS2 texts: Ctx::size_words). The page must be writable (@protect).
+                    let s = vars[words[1]];
+                    let stub = s + 0x20;
+                    let info_fn = 0x008b_7240u32.wrapping_add(delta);
+                    let rel = info_fn.wrapping_sub(stub + 8 + 5);
+                    let code = format!("ff742408ff742408e8{}83c408833d{}00740b8b4c2408c7411800000000c3", le(rel), le(s));
+                    game.command(&format!("write {:#x} 00000000000000000000000000003040", s.wrapping_sub(delta)))?;
+                    game.command(&format!("write {:#x} {code}", stub.wrapping_sub(delta)))?;
+                    let site = 0x008e_9360u32;
+                    println!("{}", game.command(&format!("write {site:#x} e8{}", le(stub.wrapping_sub(site.wrapping_add(delta) + 5))))?);
+                    println!("{}", game.command(&format!("write {:#x} {}", 0x008e_9405u32, le(s + 8)))?);
+                    *menu::PS2FONT.lock().unwrap() = Some(s);
+                }
+                "@ps2info" => {
+                    // @ps2info I M N B F [SCROLL]: the target info window (thunk I in place of
+                    // TOBtlDrawInfoWin) and the target's info line (thunk M in place of
+                    // TOBtlDrawInfoWinMes, SCROLL pixels into its scroll) as mod BattleHudPatches draws
+                    // them: a jmp at each entry (pages made writable with @protect;
+                    // FFX_HOOK_DISABLE=replacements). N / B / F the ps2win / ps2btl / ps2fnt names.
+                    let [i, m, n, b, fnt] = [1, 2, 3, 4, 5].map(|k| vars[words[k]]);
+                    let scrolled: i32 = words.get(6).map_or(0, |w| w.parse().unwrap());
+                    let built = {
+                        let mut cx = menu::Ctx { game: &mut game, delta };
+                        let info = hud::info(&mut cx, i + 0x8000, n, b, fnt)?;
+                        let line = hud::info_mes(&mut cx, m + 0x8000, n, scrolled)?;
+                        [(i, 0x0089_3a30u32, info), (m, 0x0089_5140u32, line)]
+                    };
+                    for (t, fun, l) in built {
+                        let calls = menu::expand_shapes(&mut menu::Ctx { game: &mut game, delta }, &l.calls)?;
+                        for (a, s) in &l.strings {
+                            let hex: String = s.iter().map(|x| format!("{x:02x}")).collect();
+                            game.command(&format!("write {:#x} {hex}", a.wrapping_sub(delta)))?;
+                        }
+                        println!("@ps2info {fun:#x}: {} calls", calls.len());
                         game.command(&format!("write {:#x} {}", (t + 0x100).wrapping_sub(delta), menu::encode(&calls, delta)))?;
                         game.command(&format!("write {:#x} {THUNK}", t.wrapping_sub(delta)))?;
                         let at = fun.wrapping_add(delta);

@@ -1,0 +1,58 @@
+# The battle target info window for tools/compare (docs/compare.md, docs/ui.md "The target
+# info window"): the battle of compare-battle-kami.txt (save 5, field 34 kami00, group 0,
+# formation 1), with g_BtlMenuLook (0x0112a915; PS2 0x00317335) set as Sensor would, so the
+# target's info window shows; Attack is confirmed and the cursor goes to the first monster.
+# Then the command window, the HUD and the info window as the mod draws them through calllist
+# (@ps2info: a jmp at TOBtlDrawInfoWin's entry; the game's own code has to run: scenes.toml
+# pc_env FFX_HOOK_DISABLE=replacements; give the converter's ui output as the mod).
+load direct 5 kami0100 lockstep
+lockstep on
+pin
+wait 10
+battle 34 0 1
+waitfor 0x0112a8e0:1 01 ff 4000
+wait 60
+write 0x0112a915 01
+press circle 4
+wait 40
+read 0x0133c93e 1
+read 0x0133d1f4 2
+shot $OUT\info-1-hd.bmp
+@base
+# the PS2 text line (mod Ps2Menu.install: no glyph y offset, 20-line line feeds)
+@alloc YF 4096
+@protect YF 0x008e9000 4096
+@ps2font YF
+@alloc T 65536
+@thunk T
+@alloc N 4096
+write {N} 2f4646585f446174612f47616d65446174612f505333446174612f6d656e755f75732f44334431312f70733277696e2e6464732e706879726500
+call 0x006651d0 {=N}
+wait 20
+@alloc B 4096
+write {B} 2f4646585f446174612f47616d65446174612f505333446174612f6d656e755f75732f44334431312f70733262746c2e6464732e706879726500
+call 0x006651d0 {=B}
+wait 20
+@alloc F 4096
+write {F} 2f4646585f446174612f47616d65446174612f505333446174612f6d656e755f75732f44334431312f707332666e742e6464732e706879726500
+call 0x006651d0 {=F}
+wait 20
+@alloc S 4096
+@alloc H 65536
+@alloc C 65536
+@alloc P 65536
+@alloc I 65536
+@alloc M 65536
+@protect S 0x00893000 12288
+@protect S 0x008a0000 4096
+@protect S 0x00896000 4096
+@ps2hud H C P N B F
+@ps2info I M N B F 60
+@ps2btl 0 T centred tab B footer B
+wait 1
+shot $OUT\info-2-ps2.bmp
+read 0x01137010 8
+write 0x00c34154 abaaaa3f
+write 0x01137010 8988883f
+wait 2
+shot $OUT\info-3-ps2-43.bmp

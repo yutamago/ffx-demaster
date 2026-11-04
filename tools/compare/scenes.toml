@@ -209,6 +209,42 @@ command = [0, 312, 160, 104]
 party = [160, 336, 352, 80]
 
 [[screen]]
+replay = "compare-battle-info"
+pc_env = { FFX_HOOK_DISABLE = "replacements" }
+state = "battle-kami"
+# g_BtlMenuLook (PS2 0x00317335, PC 0x0112a915) set as Sensor would: Attack's target shows the
+# info window
+ps2 = """
+write 0x00317335 01
+press cross 4 40
+wait 20
+shot $OUT\\info.png
+"""
+pairs = { info = "info-3-ps2-43" }
+[screen.regions]
+info = [16, 64, 184, 120]
+help = [0, 0, 512, 32]
+ctb = [432, 32, 80, 216]
+command = [0, 312, 160, 104]
+party = [160, 336, 352, 80]
+
+[[screen]]
+replay = "ui-spheregrid"
+state = "field-cdsp0000"
+ps2 = """
+press triangle 4 60
+press cross 4 150
+press cross 4 40
+wait 30
+shot $OUT\\grid.png
+"""
+pairs = { grid = "sg-3-commands-43" }
+[screen.regions]
+help = [0, 0, 512, 48]
+panel = [0, 48, 128, 112]
+grid = [128, 48, 384, 368]
+
+[[screen]]
 replay = "compare-field-cdsp"
 state = "field-cdsp0000"
 ps2 = """
