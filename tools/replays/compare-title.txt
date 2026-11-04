@@ -2,7 +2,9 @@
 # opening (map 0x15d) runs, then the title menu (map 0x17) at its event's
 # count 108, as ffx-rust's boot.txt (4); `render.aspect`'s 4:3 write and a
 # shot. Give the converter's ui output (efl/x) as the mod (ui.title: the PS2
-# title layers).
+# title layers, at the PS2's place). The title menu's cursor stays where the
+# PC puts it: the harness runs ported copies of the message code, so the mod's
+# ui.title move (TitlePatches.cs) can't be shown here.
 waitfor 0x0112ca90:4 5c011700 ffffffff 3000
 lockstep on
 pin

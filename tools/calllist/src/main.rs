@@ -321,6 +321,38 @@ fn main() -> ffx_harness::Result<()> {
                         println!("{} {n} -> {r}", words[0]);
                     }
                 }
+                "@detour" => {
+                    // @detour SITE T HEX: the call at SITE (e8 rel32, an ffx.sym VA) goes to T, which
+                    // runs HEX and jumps on to the original target (as a mod hook in front of the
+                    // callee; the page must be writable: @protect)
+                    let site = u32::from_str_radix(words[1].trim_start_matches("0x"), 16).unwrap();
+                    let t = vars[words[2]];
+                    let hex = words[3];
+                    let r = game.read(site + 1, 4)?;
+                    let rel = u32::from_le_bytes(r[..4].try_into().unwrap());
+                    let site_abs = site.wrapping_add(delta);
+                    let target = site_abs.wrapping_add(5).wrapping_add(rel);
+                    let jmp_at = t + (hex.len() / 2) as u32;
+                    let code = format!("{hex}e9{}", le(target.wrapping_sub(jmp_at + 5)));
+                    game.command(&format!("write {:#x} {code}", t.wrapping_sub(delta)))?;
+                    let call = le(t.wrapping_sub(site_abs + 5));
+                    println!("{}", game.command(&format!("write {site:#x} e8{call}"))?);
+                }
+                "@deref" => {
+                    // @deref VA LEN [OFF HEX]...: LEN bytes (hex) at the absolute pointer stored at VA
+                    // (ffx.sym terms); then HEX written at pointer + OFF for each pair
+                    let va = u32::from_str_radix(words[1].trim_start_matches("0x"), 16).unwrap();
+                    let len: usize = words[2].parse().unwrap();
+                    let r = game.read(va, 4)?;
+                    let p = u32::from_le_bytes(r[..4].try_into().unwrap());
+                    for pair in words[3..].chunks(2) {
+                        let off = u32::from_str_radix(pair[0].trim_start_matches("0x"), 16).unwrap();
+                        game.command(&format!("write {:#x} {}", (p + off).wrapping_sub(delta), pair[1]))?;
+                    }
+                    let b = game.read_abs(p, len)?;
+                    let hex: String = b.iter().map(|x| format!("{x:02x}")).collect();
+                    println!("@deref {va:#x} -> {p:#x}: {hex}");
+                }
                 "@set" => {
                     let v = u32::from_str_radix(words[2].trim_start_matches("0x"), 16).unwrap();
                     vars.insert(words[1].to_string(), v);
