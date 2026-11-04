@@ -42,6 +42,15 @@ wait 20
 @ps2btl 0 T centred ps2cursor N tab B footer B
 wait 1
 shot $OUT\btl-2-ps2.bmp
+# render.aspect = "ps2" as in aspect-djose.txt: the output aspect and the
+# camera's (fx 0x01137010 x 4/3, so setCameraAspectRatio stores the PS2's 4/3
+# as the mod's hook makes it). Without the fx write the whole 16:9 frustum is
+# squeezed into the 4:3: models 3/4 as wide, more scene at the sides.
+read 0x01137010 8
 write 0x00c34154 abaaaa3f
+write 0x01137010 8988883f
 wait 2
+readp 0x00ccb9d8 0xdc 0x150 4
 shot $OUT\btl-3-ps2-43.bmp
+wait 120
+shot $OUT\btl-4-ps2-43-later.bmp

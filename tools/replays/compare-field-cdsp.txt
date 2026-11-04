@@ -1,0 +1,16 @@
+# The 3D field camera for tools/compare (docs/compare.md, docs/screen.md): the
+# salvage ship deck (cdsp0000) from save 1, standing where the save puts
+# Tidus, as the PS2 state field-cdsp0000. The HD shot, then render.aspect =
+# "ps2" by memory writes as in aspect-besaid.txt (output aspect 4/3; fx
+# 0x01137010 x 4/3 so setCameraAspectRatio stores the PS2's 4/3).
+load direct 1 cdsp0000 lockstep
+lockstep on
+pin
+wait 120
+read 0x01137010 8
+shot $OUT\field-1-hd.bmp
+write 0x00c34154 abaaaa3f
+write 0x01137010 8988883f
+wait 2
+readp 0x00ccb9d8 0xdc 0x150 4
+shot $OUT\field-2-43.bmp
