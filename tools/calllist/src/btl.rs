@@ -7,6 +7,7 @@ fn hexu(r: &str) -> u32 {
     u32::from_str_radix(r.trim().trim_start_matches("ok ").trim_start_matches("0x"), 16).unwrap_or(0)
 }
 
+/// `scratch` is the thunk + 0x80 (the thunk at least 0x10000 long: number texts at + 0xf000).
 pub fn ps2btl(game: &mut Game, delta: u32, w: u32, scratch: u32, centred: bool) -> ffx_harness::Result<Vec<(u32, Vec<u32>)>> {
     let abs = |va: u32| va.wrapping_add(delta);
     let fr = |a: u32| a.wrapping_sub(delta);
@@ -121,8 +122,15 @@ pub fn ps2btl(game: &mut Game, delta: u32, w: u32, scratch: u32, centred: bool) 
                 } else if k == 2 {
                     let d = (p & 0xff) as f32;
                     x += 5.0;
+                    // mod BattlePatches.number: TOIntToMes's padded text in the 16x12 font at the
+                    // PS2's size, into a zeroed buffer of the thunk (needs a thunk of 0x10000)
                     if num > 0 || showzero {
-                        out.push((abs(0x009055c0), vec![num as u32, f(x + 12.0 * d - 2.0), f(y), grey, f(0.78), f(1.0)]));
+                        let buf = scratch - 0x80 + 0xf000 + 0x20 * (e - first.max(0)) as u32;
+                        for k in 0..8 {
+                            out.push((2, vec![buf + 4 * k, 0]));
+                        }
+                        out.push((abs(0x008b8290), vec![num as u32, buf, (d as u32).clamp(1, 16), 0]));
+                        out.extend(font(buf, x, y, grey));
                     }
                     x += 12.0 * d;
                 }
