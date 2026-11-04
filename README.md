@@ -23,10 +23,14 @@ You need:
   [installation guide](https://github.com/fahrenheit-crew/fahrenheit/wiki/Installation-guide);
 - an image (`.iso`) of your own Final Fantasy X PS2 disc, any region.
 
-Then:
+The release zip has no game data: `demaster.exe` builds the PS2 files on
+your computer from your own disc image and your own copy of the game.
 
-1. Unpack the release zip into your Fahrenheit folder, so the mod ends up in
-   `mods\yuta.demaster\` (next to Fahrenheit's `bin` folder).
+1. Download `yuta.demaster-<version>.zip` from the
+   [releases](https://github.com/yutamago/ffx-demaster/releases) and unpack
+   it into your Fahrenheit folder, so the mod ends up in
+   `mods\yuta.demaster\` (next to Fahrenheit's `bin` folder). Its
+   `README.txt` repeats these steps.
 2. Open `mods\yuta.demaster\demaster.toml` in a text editor and set `iso`
    under `[source]` to your disc image, in single quotes:
 
@@ -38,8 +42,11 @@ Then:
    If the game isn't in a usual Steam folder, also set `game` to the folder
    with `FFX.exe`.
 3. Run `mods\yuta.demaster\demaster.exe` (double-click, or `demaster.exe
-   build` in a terminal). It writes the PS2 files into the mod folder; the
-   first run takes a few minutes.
+   build` in a terminal). It writes the PS2 files into the mod folder
+   (about 7 GB with the default settings); the first run takes a while.
+   The movies need ffmpeg: if none is found, the first build downloads an
+   LGPL build of FFmpeg (168 MB) into `mods\yuta.demaster\tools\` and
+   checks its SHA-256 (`docs/movies.md`).
 4. Add a line `yuta.demaster` to `mods\loadorder` (create the file if it
    isn't there).
 5. Start the game through Fahrenheit (`bin\fhstage0.exe <path to FFX.exe>`).
@@ -64,6 +71,8 @@ To uninstall, delete `mods\yuta.demaster` and its line in `mods\loadorder`.
 - [`docs/config.md`](docs/config.md): every setting.
 - [`docs/differences.md`](docs/differences.md): every difference between
   the two versions, how the mod restores it, its setting and the effort.
+- [`docs/ci.md`](docs/ci.md): CI, releases and the `FFX_RUST_TOKEN`
+  secret.
 - [`docs/disc.md`](docs/disc.md): how the PS2 disc stores its files and how
   they map to the PC's names.
 - [`docs/research/`](docs/research): the evidence. Version differences with
@@ -72,7 +81,7 @@ To uninstall, delete `mods\yuta.demaster` and its line in `mods\loadorder`.
 
 ## Build
 
-The repository has two parts:
+The repository has three parts:
 
 - `converter/`: `demaster`, the converter (Rust). It needs the ffx-rust
   crates (private, `github.com/yutamago/ffx-rust`, pinned in `Cargo.toml`).
@@ -87,16 +96,30 @@ cargo build --release -p demaster              # Linux build: target/release/dem
 tools/build-windows.sh                         # demaster.exe via cargo-xwin (Linux/WSL)
 tools/build-studio-windows.sh                  # ffx-music-studio.exe the same way
 dotnet build -c Release ffx-demaster.slnx      # mod/artifacts/deploy/rel/mods/yuta.demaster/
-dotnet run tools/package.cs -- yuta.demaster.zip   # the release zip
+dotnet run tools/package.cs -- yuta.demaster.zip [demaster.exe]   # the release zip
 cargo test -p demaster                         # config tests, incl. that mod/ knows every setting
 ```
 
 On Windows, `cargo build --release -p demaster --target
-x86_64-pc-windows-msvc` builds `demaster.exe` directly. CI
-(`.github/workflows/build.yml`) does that on every push and uploads the zip
-as an artifact; pushing a tag `v*` publishes a release
-(`.github/workflows/release.yml`). Both need the repository secret
-`FFX_RUST_TOKEN` with read access to ffx-rust.
+x86_64-pc-windows-msvc` builds `demaster.exe` directly.
+
+The zip (`tools/package.cs`) holds `mods/yuta.demaster/` with the mod
+(`yuta.demaster.dll`, `.deps.json`, `.runtimeconfig.json`,
+`.manifest.json`, `.pdb`), `demaster.exe`, the default `demaster.toml`, the
+players' `README.txt` (`tools/package/README.txt`), `config.md` and
+`LICENSES.txt` (`tools/package/LICENSES.txt`, every crate in `demaster.exe`
+with its licence texts from `cargo metadata`, `THIRD-PARTY-NOTICES`). Text
+files get CRLF line ends. Nothing from the game.
+
+CI (`.github/workflows/build.yml`, [`docs/ci.md`](docs/ci.md)) builds the
+mod, runs the converter and studio tests on Linux, builds `demaster.exe` and
+`ffx-music-studio.exe` on Windows and uploads the zip and the studio as
+artifacts, on every push and pull request. Pushing a tag `v*` builds the
+same with the tag's version and publishes a release with both
+(`.github/workflows/release.yml`). The Rust jobs need the repository secret
+`FFX_RUST_TOKEN`: a fine-grained personal access token with read-only
+access to the contents of `yutamago/ffx-rust` ([`docs/ci.md`](docs/ci.md)
+says how to create it).
 
 While developing, run the converter against any folder:
 

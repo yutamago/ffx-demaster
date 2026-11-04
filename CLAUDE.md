@@ -102,8 +102,11 @@ cargo build --release -p demaster
 ./target/release/demaster build --config my.toml --mod-dir <mod folder>   # [source] iso/game in my.toml
 ./target/release/demaster chr <iso> ~/steam-games/FFX-X2-HD/data/FFX_Data.vbf <out> all   # + PNG previews
 tools/build-windows.sh            # demaster.exe (cargo-xwin, static CRT)
-dotnet build -c Release ffx-demaster.slnx && dotnet run tools/package.cs -- out.zip
+dotnet build -c Release ffx-demaster.slnx && dotnet run tools/package.cs -- out.zip [demaster.exe]
 ```
+
+The zip's players' README and licence header are `tools/package/*.txt`.
+CI, tag releases and the `FFX_RUST_TOKEN` secret: `docs/ci.md`.
 
 Paths with `(`/`)` (the ISO's name) upset the agent sandbox: symlink the ISO
 to a plain path (`/tmp/dm-ffx.iso`). Windows processes see WSL symlinks
