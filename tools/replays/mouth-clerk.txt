@@ -1,0 +1,25 @@
+# fixes.npc_mouths (docs/patches.md): the agency clerk (n058, save 5, chr record 7) made to talk
+# for 30 updates by writing chr +0x4d4; the mouth slot's FRAME (texture animation 7, slot 3 at
+# work +0xa8: 1 shows the closed frame, 0 the open one) and the talk and jaw words before, while
+# and after. Unpatched PC: 1, 1, 0; the PS2: 1, 0, 1.
+load direct 5 kami0100 lockstep
+lockstep on
+pin
+wait 30
+wait 2
+readp 0x023c44e4 0x3b80 4
+readp 0x023c44e4 0x4280 4
+readp 0x02310154 0xa8 4
+readp 0x023c44e4 0x4054 12
+shot $OUT\mouth-clerk-0before.bmp
+writep 0x023c44e4 0x4054 01
+wait 20
+shot $OUT\mouth-clerk-1talk.bmp
+readp 0x02310154 0xa8 4
+readp 0x023c44e4 0x4054 12
+wait 10
+writep 0x023c44e4 0x4054 00
+wait 40
+readp 0x02310154 0xa8 4
+readp 0x023c44e4 0x4054 12
+shot $OUT\mouth-clerk-2after.bmp
