@@ -4,7 +4,9 @@ fn main() -> ffx_harness::Result<()> {
     let mut args = std::env::args().skip(1);
     let script = std::fs::read_to_string(args.next().expect("script"))?;
     let trace = args.next().expect("trace");
-    let mut options = ffx_harness::Options { virtual_clock: true, ..ffx_harness::Options::default() };
+    // a `realtime` line: the game's own rate, FMOD on the sound card (no fast mode, no virtual clock)
+    let rt = ffx_harness::replay::realtime(&script);
+    let mut options = ffx_harness::Options { virtual_clock: !rt, fast: !rt, ..ffx_harness::Options::default() };
     if std::env::var_os("SHOTRUN_ORIGINAL").is_some() { options.hook_disable = Some("replacements".into()); }
     // seconds to wait for the first frame (default 90; more on a busy machine)
     if let Some(s) = std::env::var("SHOTRUN_STARTUP").ok().and_then(|s| s.parse().ok()) { options.startup = std::time::Duration::from_secs(s); }

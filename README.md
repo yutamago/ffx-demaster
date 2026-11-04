@@ -174,7 +174,11 @@ FFX_GAME_DIR=~/steam-games/FFX-X2-HD cargo run --release --manifest-path ../ffx-
   ../ffx-demaster/tools/replays/battle-djose.txt 'C:\shots\ps2\djose.trace' <out>/efl/x
 ```
 
-Run it once without the mod folder for the HD baseline. `tools/calllist` is
+Run it once without the mod folder for the HD baseline. A replay with a `realtime` line runs at the game's
+own rate with FMOD on the sound card (no fast mode, no virtual clock);
+`tools/loopcap` (`tools/build-loopcap.sh`) records one process's sound with
+the time of each packet, for lip-sync measurements (`docs/timing.md`, "Voice
+start"). `tools/calllist` is
 the same with a few extra commands for checking C# draw hooks the harness
 can't run: it makes the game itself call a list of FFX.exe functions from a
 draw callback (`tools/replays/ui-battle-*.txt`, `docs/ui.md`). `FFX_HOOK_LOG_OPENS=1`
