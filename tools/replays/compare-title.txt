@@ -2,12 +2,23 @@
 # opening (map 0x15d) runs, then the title menu (map 0x17) at its event's
 # count 108, as ffx-rust's boot.txt (4); `render.aspect`'s 4:3 write and a
 # shot. Give the converter's ui output (efl/x) as the mod (ui.title: the PS2
-# title layers, at the PS2's place). The title menu's cursor stays where the
-# PC puts it: the harness runs ported copies of the message code, so the mod's
-# ui.title move (TitlePatches.cs) can't be shown here.
+# title layers, at the PS2's place). The title menu goes where the mod's
+# ui.title hook puts it (TitlePatches.cs): its layout 62 lines lower (two call
+# detours in front of TkMenuMessageLayout_008de370's TOSetRectDirect, as the
+# hook's +0x34) and the choice constant 6.0. Needs the game's own code
+# (scenes.toml pc_env FFX_HOOK_DISABLE=replacements: ffx-rust ports the message code).
 waitfor 0x0112ca90:4 5c011700 ffffffff 3000
 lockstep on
 pin
+@base
+@alloc S 4096
+@alloc T 4096
+@alloc U 4096
+@protect S 0x008de000 4096
+@protect S 0x00b65000 4096
+@detour 0x008de543 T 8344240c3e
+@detour 0x008de558 U 8344240c3e
+write 0x00b655e8 0000000000001840
 waitfor 0x0112ca90:4 5d015c01 ffffffff 3000
 waitfor 0x01325d94:4 00000000 c0ffffff 600
 wait 30

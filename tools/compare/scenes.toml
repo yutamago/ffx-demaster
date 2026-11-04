@@ -180,6 +180,7 @@ right = [256, 32, 256, 384]
 
 [[screen]]
 replay = "compare-title"
+pc_env = { FFX_HOOK_DISABLE = "replacements" }
 state = "title"
 ps2 = """
 wait 50
@@ -194,6 +195,7 @@ bar = [0, 360, 512, 56]
 
 [[screen]]
 replay = "compare-battle-kami"
+pc_env = { FFX_HOOK_DISABLE = "replacements" }
 state = "battle-kami"
 ps2 = """
 wait 30

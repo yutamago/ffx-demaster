@@ -204,6 +204,9 @@ def run_pc(screens, out, mod, lang):
         os.makedirs(od, exist_ok=True)
         print(f"== PC {s['replay']}", flush=True)
         env = dict(os.environ, RUSTC_WRAPPER='', FFX_LANG=lang)
+        # pc_env: e.g. FFX_HOOK_DISABLE = "replacements", the game's own code instead of
+        # ffx-rust's ports, so the replay's code patches (the mod's hooks) take effect
+        env.update(s.get('pc_env', {}))
         env.setdefault('FFX_GAME_DIR', os.path.expanduser('~/steam-games/FFX-X2-HD'))
         subprocess.run(['cargo', 'run', '-j', '4', '--release', '--manifest-path',
                         calllist_manifest(), '--',
