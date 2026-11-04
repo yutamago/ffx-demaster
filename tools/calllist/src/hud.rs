@@ -347,6 +347,120 @@ impl Layout {
     }
 }
 
+/// mod BattleHudPatches.INFO_ROW (PS2 0x00570e48).
+const INFO_ROW: [u32; 28] = [
+    0x00ea_eaea, 0x6ad2_ac23, 0x6a9f_491f, 0x00ea_eaea,
+    0x07ba_3f96, 0x73aa_72bd, 0x7349_1e40, 0x0783_4270,
+    0x0773_73b8, 0x7367_67ba, 0x731e_1e51, 0x074d_4d7b,
+    0x076d_89b7, 0x7346_88b3, 0x7324_2d5e, 0x074e_5580,
+    0x0d60_2b32, 0x6660_2b32, 0x6660_2b32, 0x0d60_2b32,
+    0x0d60_2b32, 0x6660_2b32, 0x6660_2b32, 0x0d60_2b32,
+    0x0063_1c4e, 0x8063_1c4e, 0x8063_1c4e, 0x0063_1c4e,
+];
+
+/// mod BattleHudPatches.info_row (PS2 0x002198e0).
+fn info_row(l: &mut List, x: i32, y: i32, w: i32, h: i32, kind: usize) {
+    let c = &INFO_ROW[4 * kind..4 * kind + 4];
+    l.c(BOX_C2, &[x as u32, y as u32, 40, h as u32, c[0], c[1]]);
+    l.c(BOX_C2, &[(x + 40) as u32, y as u32, (w - 80) as u32, h as u32, c[1], c[2]]);
+    l.c(BOX_C2, &[(x + w - 40) as u32, y as u32, 40, h as u32, c[2], c[3]]);
+}
+
+/// The target info window (mod BattleHudPatches.info, PS2 0x00218a80(chr, 0x14, 0x46)) for the
+/// current target (0x0133d1f4); empty while g_BtlInfoStatusShown is 0. The status shown is the one
+/// g_BtlInfoStatus points at now (the mod ticks it every 21 frames).
+pub fn info(cx: &mut Ctx, scratch: u32, ps2win: u32, ps2btl: u32, fnt: u32) -> ffx_harness::Result<List> {
+    let mut l = List::new(scratch);
+    let shown = cx.game.read(0x0133_c93e, 1)?[0];
+    let chr = cx.r16(0x0133_d1f4)? as u32 & 0xffff;
+    eprintln!("hud info: shown {shown} chr {chr:#x}");
+    if shown == 0 {
+        return Ok(l);
+    }
+    let t = Layout::read(cx)?;
+    let (slot, orig) = crate::menu::atlas_slot(cx)?;
+    let (bslot, borig) = crate::menu::sheet_slot(cx, 0x3f00)?;
+    let fo = crate::menu::Fonts { slot, win: ps2win, fnt };
+    let mut f = [0u32; 4];
+    for (k, v) in f.iter_mut().enumerate() {
+        *v = cx.call(0x0089_7650, &[chr, k as u32])? & 0xff;
+    }
+    let european = cx.call(0x0064_10e0, &[])? != 0;
+    let st = cx.game.read(0x0133_f5c0, 0x58)?;
+    let s16 = |o: usize| i16::from_le_bytes([st[o], st[o + 1]]) as i32;
+    let count = s16(6);
+    let mut h = 0x16 + 0x10 * f.iter().filter(|v| **v != 0).count() as i32;
+    if count > 0 {
+        h += if european { 0x18 } else { 0x12 };
+    }
+    eprintln!("hud info: flags {f:x?} count {count} h {h}");
+    let (mut x, mut y) = (0x14, 0x46);
+    l.set(slot, ps2win);
+    l.set(bslot, ps2btl);
+    l.c(SCISSOR_XYWH, &[0, 0, 0x200, 0x1a0]);
+    frame(&t, &mut l, x, y, 0xa9, h);
+    t.grey(&mut l, 0x1aa, x + 0x24, y);
+    x += 3;
+    y += 3;
+    l.c(SHAPE_XY, &[0xe9, (x + 2) as u32, (y + 2) as u32]);
+    let hp = cx.call(0x0079_add0, &[chr])? as i32;
+    let max = cx.call(0x0079_adf0, &[chr])? as i32;
+    crate::menu::value_s(&mut l, &fo, i64::from(hp), x + 0x54, y + 2, 0);
+    crate::menu::font_s(&mut l, &fo, "/", x + 0x5a, y + 2, 0);
+    crate::menu::value_s(&mut l, &fo, i64::from(max), x + 0xa0, y + 2, 0);
+    y += 0x10;
+    for (k, &v) in f.iter().enumerate() {
+        if v == 0 {
+            continue;
+        }
+        info_row(&mut l, x, y, 0xa3, 0x10, k);
+        info_row(&mut l, x, y, 0xa3, 1, 6);
+        t.grey(&mut l, 0x1af + k as u32, x + 24, y);
+        for (bit, id) in [(1, 0x1d9), (4, 0x1da), (8, 0x1db), (2, 0x1dc)] {
+            if v & bit == 0 {
+                t.grey(&mut l, id, x + 24, y);
+            }
+        }
+        y += 0x10;
+    }
+    if count > 0 {
+        y += 2;
+        info_row(&mut l, x, y, 0xa3, if european { 0x16 } else { 0x10 }, 5);
+        let k = s16(4).clamp(0, count - 1) as usize;
+        let id = u16::from_le_bytes([st[8 + 2 * k], st[9 + 2 * k]]);
+        let text = cx.call(0x0078_fcf0, &[1, u32::from(id), 1])?;
+        let w = cx.text_width(text)?;
+        l.c(FONT_1612, &[text, (x + (0xa9 - w) / 2) as u32, (y + 2) as u32, 0]);
+    }
+    l.set(slot, orig);
+    l.set(bslot, borig);
+    Ok(l)
+}
+
+/// The target's info line in the help bar (mod BattleHudPatches.set_info_mes / draw_info_mes, PS2
+/// 0x00219550 / 0x002192a8), `scrolled` pixels into its scroll (the mod moves it 2 a frame; the
+/// PS2 shot of compare-battle-info catches it 60 in). Empty while g_BtlInfoWinShown is 0.
+pub fn info_mes(cx: &mut Ctx, scratch: u32, ps2win: u32, scrolled: i32) -> ffx_harness::Result<List> {
+    let mut l = List::new(scratch);
+    let shown = cx.game.read(0x0133_c93d, 1)?[0];
+    let chr = cx.r16(0x0133_d1f4)? as u32 & 0xffff;
+    if shown == 0 {
+        return Ok(l);
+    }
+    let (slot, orig) = crate::menu::atlas_slot(cx)?;
+    let x0 = cx.text_width(cx.abs(0x0133_f538))? + 0x50;
+    let text = cx.call(0x0078_f7c0, &[chr, 1])?;
+    let w = cx.text_width(text)?;
+    let x = if w < 0x1ae - x0 { x0 } else { x0 - scrolled };
+    eprintln!("hud info line: box x0 {x0} text w {w} at x {x}");
+    l.set(slot, ps2win);
+    l.c(SCISSOR, &[x0 as u32, 12, 0x1ae, 0x24]);
+    l.c(FONT_1612, &[text, x as u32, 12, 0]);
+    l.c(SCISSOR, &[0, 0, 0x1ff, 0x19f]);
+    l.set(slot, orig);
+    Ok(l)
+}
+
 /// A scene colour as the scene dump prints it (rrggbbaa) -> the record's word (bytes r g b a).
 fn rgba(v: u32) -> u32 {
     v.swap_bytes()

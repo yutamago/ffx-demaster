@@ -13,6 +13,7 @@
 //!                         overdrive, customize) through thunks T1..; O scratch, N / F the ps2win /
 //!                         ps2fnt names
 //!   @ps2help H N          the main menu's help bar (items::help) through thunk H
+//!   @ps2info I M N B F [S] the battle target info window and its help-bar line (hud::info, info_mes)
 //!   @ps2limit T A L R B   the Overdrive mini-game windows (limit.rs): Tidus, Auron, Lulu, the timer
 //!                         through thunks T, A, L, R (jmps at the PC draws); B the ps2btl name
 //! Substitutions in any line: {NAME[+off]} -> the address in ffx.sym terms (what write/call/read
@@ -425,6 +426,33 @@ fn main() -> ffx_harness::Result<()> {
                     }
                     println!("{}", game.command("write 0x8a1ce0 c3")?);
                     println!("{}", game.command("write 0x8a1e50 31c0c3")?);
+                }
+                "@ps2info" => {
+                    // @ps2info I M N B F [SCROLL]: the target info window (thunk I in place of
+                    // TOBtlDrawInfoWin) and the target's info line (thunk M in place of
+                    // TOBtlDrawInfoWinMes, SCROLL pixels into its scroll) as mod BattleHudPatches draws
+                    // them: a jmp at each entry (pages made writable with @protect;
+                    // FFX_HOOK_DISABLE=replacements). N / B / F the ps2win / ps2btl / ps2fnt names.
+                    let [i, m, n, b, fnt] = [1, 2, 3, 4, 5].map(|k| vars[words[k]]);
+                    let scrolled: i32 = words.get(6).map_or(0, |w| w.parse().unwrap());
+                    let built = {
+                        let mut cx = menu::Ctx { game: &mut game, delta };
+                        let info = hud::info(&mut cx, i + 0x8000, n, b, fnt)?;
+                        let line = hud::info_mes(&mut cx, m + 0x8000, n, scrolled)?;
+                        [(i, 0x0089_3a30u32, info), (m, 0x0089_5140u32, line)]
+                    };
+                    for (t, fun, l) in built {
+                        let calls = menu::expand_shapes(&mut menu::Ctx { game: &mut game, delta }, &l.calls)?;
+                        for (a, s) in &l.strings {
+                            let hex: String = s.iter().map(|x| format!("{x:02x}")).collect();
+                            game.command(&format!("write {:#x} {hex}", a.wrapping_sub(delta)))?;
+                        }
+                        println!("@ps2info {fun:#x}: {} calls", calls.len());
+                        game.command(&format!("write {:#x} {}", (t + 0x100).wrapping_sub(delta), menu::encode(&calls, delta)))?;
+                        game.command(&format!("write {:#x} {THUNK}", t.wrapping_sub(delta)))?;
+                        let at = fun.wrapping_add(delta);
+                        println!("{}", game.command(&format!("write {fun:#x} e9{}", le(t.wrapping_sub(at + 5))))?);
+                    }
                 }
                 "@deref" => {
                     // @deref VA LEN [OFF HEX]...: LEN bytes (hex) at the absolute pointer stored at VA
