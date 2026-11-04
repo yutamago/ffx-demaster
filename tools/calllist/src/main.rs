@@ -13,6 +13,8 @@
 //!                         overdrive, customize) through thunks T1..; O scratch, N / F the ps2win /
 //!                         ps2fnt names
 //!   @ps2help H N          the main menu's help bar (items::help) through thunk H
+//!   @ps2limit T A L R B   the Overdrive mini-game windows (limit.rs): Tidus, Auron, Lulu, the timer
+//!                         through thunks T, A, L, R (jmps at the PC draws); B the ps2btl name
 //! Substitutions in any line: {NAME[+off]} -> the address in ffx.sym terms (what write/call/read
 //! take), {&NAME[+off]} -> its absolute value as 4 LE bytes (hex), {&va:0x...} -> a VA's absolute
 //! value as LE bytes, {=NAME} -> its absolute value as a number (a call argument), {f:1.5} -> f32 LE bytes, {i:-3} -> i32 LE bytes.
@@ -22,6 +24,7 @@ mod customize;
 mod equip;
 mod hud;
 mod items;
+mod limit;
 mod menu;
 mod overdrive;
 mod screens;
@@ -386,6 +389,41 @@ fn main() -> ffx_harness::Result<()> {
                         let at = fun.wrapping_add(delta);
                         println!("{}", game.command(&format!("write {fun:#x} e9{}", le(t.wrapping_sub(at + 5))))?);
                     }
+                }
+                "@ps2limit" => {
+                    // @ps2limit T A L R B: the Overdrive mini-game windows as mod BattleLimitPatches
+                    // draws them: thunks T (Tidus, TOBtlDrawTidusLimitWindow), A (Auron), L (Lulu), R
+                    // (the timer, 0x008955e0) behind a jmp at each PC draw's entry; TODrawLimitBG and
+                    // Wakka's frame return at once (the PS2 draws neither). Pages made writable with
+                    // @protect (0x00892000, 0x00895000, 0x00897000, 0x008a1000); the game's own code
+                    // has to run (FFX_HOOK_DISABLE=replacements). Thunks of 0x10000: lists at +0x100,
+                    // strings at +0x8000, Lulu's keyboard text at +0xf000. B the ps2btl name.
+                    let [tt, at, lt, rt, b] = [1, 2, 3, 4, 5].map(|k| vars[words[k]]);
+                    let built = {
+                        let mut cx = menu::Ctx { game: &mut game, delta };
+                        let ti = limit::tidus(&mut cx, tt + 0x8000, b)?;
+                        let au = limit::auron(&mut cx, at + 0x8000)?;
+                        let lu = limit::lulu(&mut cx, lt + 0x8000, b, lt + 0xf000)?;
+                        let tm = limit::timer(&mut cx, rt + 0x8000, b)?;
+                        [(tt, 0x0089_7240u32, ti), (at, 0x0089_2740, au), (lt, 0x0089_5660, lu), (rt, 0x0089_55e0, tm)]
+                    };
+                    for (t, fun, l) in built {
+                        let calls = menu::expand_shapes(&mut menu::Ctx { game: &mut game, delta }, &l.calls)?;
+                        for (a, s) in &l.strings {
+                            let hex: String = s.iter().map(|x| format!("{x:02x}")).collect();
+                            game.command(&format!("write {:#x} {hex}", a.wrapping_sub(delta)))?;
+                        }
+                        for (f, a) in &calls {
+                            println!("  call {f:#x} {a:x?}");
+                        }
+                        println!("@ps2limit {fun:#x}: {} calls", calls.len());
+                        game.command(&format!("write {:#x} {}", (t + 0x100).wrapping_sub(delta), menu::encode(&calls, delta)))?;
+                        game.command(&format!("write {:#x} {THUNK}", t.wrapping_sub(delta)))?;
+                        let at = fun.wrapping_add(delta);
+                        println!("{}", game.command(&format!("write {fun:#x} e9{}", le(t.wrapping_sub(at + 5))))?);
+                    }
+                    println!("{}", game.command("write 0x8a1ce0 c3")?);
+                    println!("{}", game.command("write 0x8a1e50 31c0c3")?);
                 }
                 "@deref" => {
                     // @deref VA LEN [OFF HEX]...: LEN bytes (hex) at the absolute pointer stored at VA

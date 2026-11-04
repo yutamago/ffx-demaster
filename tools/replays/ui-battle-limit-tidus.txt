@@ -1,0 +1,47 @@
+# ui.menus = ps2, battle: the Overdrive mini-game windows as mod/BattleLimitPatches.cs draws
+# them, through tools/calllist (@ps2limit: a jmp at each PC draw's entry to a call list with the
+# mod's calls, so the game's own code has to run: FFX_HOOK_DISABLE=replacements; give the
+# converter's ui output as the mod, for ps2btl). docs/ui.md, "The Overdrive mini-game windows".
+# The calls are built from the window's state at the injection (the marker, count and seconds
+# then); the hook's sequence-shape rule (BattleSeqPatches: the limit scenes from the PS2 atlas)
+# is not mirrored. Shots: <n>-1-hd (the PC's draw), -2-ps2, -3-ps2-43 (after the 4:3 write).
+# Tidus: the battle of fx-overdrive.txt (save 5, Djose highroad, battle 33 0 3, party Yuna, Tidus,
+# Wakka, Tidus's gauge (actor +0x5bc) full), Swordplay (left), Spiral Cut, the Ochu; shot while the
+# bar runs (TOBtlCtrlTidusLimitWindow state 4, i16 0x0133d734) with the timer.
+load direct 5 kami0100 lockstep
+lockstep on
+pin
+wait 10
+write 0x011307e8 01000405ff020306
+battle 33 0 3
+waitfor 0x0112a8e0:1 01 ff 4000
+writep 0x011334d4 0x5bc 64
+waitfor 0x023cc08c:4 01000000 ffffffff 600
+wait 30
+press left 4 30
+press circle 4 30
+press circle 4 30
+press circle 4 10
+waitfor 0x0133d734:2 0400 ffff 600
+wait 10
+shot $OUT\lim-tidus-1-hd.bmp
+@base
+@alloc B 4096
+write {B} 2f4646585f446174612f47616d65446174612f505333446174612f6d656e755f75732f44334431312f70733262746c2e6464732e706879726500
+call 0x006651d0 {=B}
+wait 20
+@alloc S 4096
+@alloc T 65536
+@alloc A 65536
+@alloc L 65536
+@alloc R 65536
+@protect S 0x00892000 4096
+@protect S 0x00895000 4096
+@protect S 0x00897000 4096
+@protect S 0x008a1000 4096
+@ps2limit T A L R B
+wait 1
+shot $OUT\lim-tidus-2-ps2.bmp
+write 0x00c34154 abaaaa3f
+wait 2
+shot $OUT\lim-tidus-3-ps2-43.bmp
