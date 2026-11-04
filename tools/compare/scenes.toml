@@ -229,6 +229,22 @@ command = [0, 312, 160, 104]
 party = [160, 336, 352, 80]
 
 [[screen]]
+replay = "ui-spheregrid"
+state = "field-cdsp0000"
+ps2 = """
+press triangle 4 60
+press cross 4 150
+press cross 4 40
+wait 30
+shot $OUT\\grid.png
+"""
+pairs = { grid = "sg-3-commands-43" }
+[screen.regions]
+help = [0, 0, 512, 48]
+panel = [0, 48, 128, 112]
+grid = [128, 48, 384, 368]
+
+[[screen]]
 replay = "compare-field-cdsp"
 state = "field-cdsp0000"
 ps2 = """
