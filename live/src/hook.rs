@@ -74,6 +74,19 @@ const DECODE_FRAMES: u32 = 0x1000;
 unsafe extern "system" {
     fn GetModuleHandleW(name: *const u16) -> usize;
     fn VirtualProtect(addr: *mut c_void, size: usize, prot: u32, old: *mut u32) -> i32;
+    fn GetSystemTimePreciseAsFileTime(ft: *mut u64);
+}
+
+/// `DEMASTER_LIVE_EVENTS=1`: every other `Event::start` (sound effects,
+/// voices) is logged with its `GetSystemTimePreciseAsFileTime` time, for
+/// latency measurements against `tools/loopcap` (`docs/timing.md`).
+static LOG_EVENTS: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+fn filetime() -> u64 {
+    let mut ft = 0u64;
+    // SAFETY: an out parameter of 8 bytes.
+    unsafe { GetSystemTimePreciseAsFileTime(&mut ft) };
+    ft
 }
 
 static BASE: AtomicU32 = AtomicU32::new(0);
@@ -256,12 +269,19 @@ fn orig<T: Copy>(slot: &AtomicU32) -> T {
 
 unsafe extern "system" fn w_start(ev: u32) -> u32 {
     let Some((mut g, id)) = ours(ev) else {
+        if LOG_EVENTS.load(Ordering::Relaxed) {
+            let ft = filetime();
+            if let Some(st) = state().as_mut() {
+                st.log(&format!("event start {ev:08x} (not music) filetime {ft}"));
+            }
+        }
         return unsafe { orig::<Fn1>(&O_START)(ev) };
     };
     let st = g.as_mut().expect("state");
     let ok = st.engine.start(ev, id);
     let v = st.engine.volume(ev);
-    st.log(&format!("start music {id} (event {ev:08x}, volume {v:.3}): {}", if ok { "playing" } else { "FAILED" }));
+    let ft = filetime();
+    st.log(&format!("start music {id} (event {ev:08x}, volume {v:.3}): {} (filetime {ft})", if ok { "playing" } else { "FAILED" }));
     let need_stream = st.sound == 0 && !st.stream_failed;
     drop(g);
     if need_stream {
@@ -396,6 +416,10 @@ unsafe extern "system" fn pcm_read(_sound: u32, data: *mut u8, len: u32) -> u32 
     let mut buf = std::mem::take(&mut st.buf);
     buf.clear();
     st.reads += 1;
+    if LOG_EVENTS.load(Ordering::Relaxed) {
+        let ft = filetime();
+        st.log(&format!("read {frames} frames from {} filetime {ft}", st.engine.frames));
+    }
     st.engine.render(frames, &mut buf);
     // SAFETY: FMOD's buffer holds len bytes; frames * 4 <= len.
     unsafe { std::ptr::copy_nonoverlapping(buf.as_ptr() as *const u8, data, frames * 4) };
@@ -606,8 +630,9 @@ fn install(mod_dir: &str) -> u32 {
     poke(rebase(HANDLERS + 4 * 0x1d), c_tempo_translate as *const () as u32);
     poke(rebase(HANDLERS + 4 * 0x1e), c_tempo_direct as *const () as u32);
     poke(rebase(MARK), u32::from_le_bytes(*b"LIVE"));
+    LOG_EVENTS.store(std::env::var_os("DEMASTER_LIVE_EVENTS").is_some(), Ordering::Relaxed);
     let debug = if let Some(st) = state().as_mut() {
-        st.log(&format!("installed: FFX.exe at {base:08x}, 9 import slots and 2 FMOD command handlers wrapped"));
+        st.log(&format!("installed: FFX.exe at {base:08x}, 9 import slots and 2 FMOD command handlers wrapped (filetime {})", filetime()));
         st.wav.is_some()
     } else {
         false

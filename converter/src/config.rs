@@ -143,6 +143,10 @@ pub struct Audio {
     /// sequences by our PS2 sound driver, instead of the PC's recordings;
     /// `"live"`: that driver playing in the game.
     pub music_engine: MusicEngine,
+    /// `"ps2"`: FMOD mixes in 256-sample buffers (21 ms) instead of the
+    /// PC's 1024 (85 ms), so sounds and voices start about 60 ms sooner,
+    /// close to the PS2's (`docs/timing.md`, "Voice start").
+    pub latency: Look,
 }
 
 /// Game speed (`docs/timing.md`). These touch play, not only the picture,
@@ -243,6 +247,7 @@ pub const SETTINGS: &[(&str, AppliedBy)] = {
         ("ui.button_glyphs", Converter),
         ("audio.soundtrack", Mod),
         ("audio.music_engine", Both),
+        ("audio.latency", Mod),
         ("movies", Converter),
         ("timing.run_speed", Mod),
         ("fixes.npc_mouths", Mod),

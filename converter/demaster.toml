@@ -102,6 +102,10 @@ soundtrack = "ps2"
 # (fades, pauses, tempo as the scripts ask); the rendered bank stays as the
 # fallback.
 music_engine = "ps2"
+# "ps2": sounds and voices reach the speakers about 60 ms sooner (FMOD mixes
+# in 256-sample buffers instead of the PC's 1024), as close to the PS2's lip
+# sync as the PC gets. "hd": the PC's buffers (if the sound crackles).
+latency = "ps2"
 
 [timing]
 # The game's logic runs at the NTSC PS2's (and the PC's) 29.97 frames a

@@ -15,6 +15,14 @@ fn main() -> ffx_harness::Result<()> {
     let max = concat!(env!("CARGO_MANIFEST_DIR"), "/../sandbox/max.ini");
     options.settings = Some(std::env::var("SHOTRUN_SETTINGS").unwrap_or_else(|_| max.into()));
     options.mods = args.map(std::path::PathBuf::from).collect();
+    // SHOTRUN_CONNECT=<port>: play the replay on a game that is already running with the
+    // harness on that port (a Fahrenheit game with ffx-rust's DINPUT8.dll beside FFX.exe:
+    // tools/fh-test.sh); the game is left running.
+    if let Some(port) = std::env::var("SHOTRUN_CONNECT").ok().and_then(|s| s.parse().ok()) {
+        let mut game = ffx_harness::Game::connect(port)?;
+        for line in ffx_harness::replay::play(&mut game, &script, &trace)? { println!("{line}"); }
+        return Ok(());
+    }
     let mut game = ffx_harness::Game::launch(&options)?;
     eprintln!("slot {}, port {}", game.instance().unwrap_or(0), game.port());
     let played = ffx_harness::replay::play(&mut game, &script, &trace);

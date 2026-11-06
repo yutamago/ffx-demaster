@@ -33,6 +33,7 @@ internal static class Patches {
         new("ui.battle_menu_delay",  "hd",    "battle menu without input delays",        GamePatches.battle_menu_delay),
         new("audio.soundtrack",      "hd",    "original soundtrack for new games",       GamePatches.soundtrack),
         new("audio.music_engine",    "hd",    "PS2 music played live by the game's commands", LiveMusic.install, Only: "live"),
+        new("audio.latency",         "hd",    "FMOD's mixer with 256-sample buffers (sounds 60 ms sooner)", AudioLatency.apply),
         new("timing.run_speed",      "hd",    "PS2 run speed (34)",                      GamePatches.run_speed),
         new("fixes.npc_mouths",      "false", "NPC mouth textures close after talking",  GamePatches.npc_mouths),
         new("fixes.farplane_video",  "false", "Farplane background video plays",         GamePatches.farplane_video),
