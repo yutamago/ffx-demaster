@@ -1,18 +1,21 @@
 # ui.menus = ps2, the world map: the PS2 picture (converter, sgjob.rs) and what
 # mod/WorldMapPatches.cs draws over it, through tools/calllist (docs/ui.md, "The world map"). Give
 # the converter's ui output (efl/x) as the mod: then the picture is the PS2's in every shot (a file
-# swap); run without the mod for the HD picture. From save slot 1 (salvage ship deck): reserve the
-# world map menu (Sg_MenuSetReserve, as the script command 0x401d does; menu id 0x17 is the record
-# TkMenuCtrlWorldMap sleeps at the end, a best guess for the id), wait for the fade-in (+0x64 =
-# 0x80), shoot (the PC's HD location bar); point the window's draw at the PS2 draw
+# swap); run without the mod for the HD picture. From save slot 1 (salvage ship deck): open the
+# main menu (Sg_MenuSetReserve; the menu open 0x008aa780 registers menu 0x17 = TkMenuCtrlWorldMap
+# with the others but activates only the main menu), then activate the world map as the game's own
+# TkMenuCtrlItem does in its state 7 (TkMenuMainActiveMenu(0x17, 0)), wait for the fade-in
+# (+0x64 = 0x80), shoot (the PC's HD location bar); point the window's draw at the PS2 draw
 # (@ps2screen worldmap), shoot; the 4:3 write and a shot.
-# Unchecked: the menu id; the save's map marker may be 0 (then no marker scene, as on both).
+# The save's map marker may be 0 (then no marker scene, as on both).
 load direct 1 cdsp0000 lockstep
 lockstep on
 pin
 wait 120
 call 0x00821750 0x17
-wait 90
+wait 60
+call 0x008aa100 0x17 0
+wait 120
 read 0x01871698 4
 shot $OUT\wm-1-hd.bmp
 @base

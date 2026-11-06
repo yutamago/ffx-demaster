@@ -15,6 +15,16 @@ shot $OUT\sg-1-grid.bmp
 press circle 4 40
 wait 30
 shot $OUT\sg-2-commands.bmp
+# render.aspect = "ps2" as the mod makes it (mod/RenderPatches.cs, docs/screen.md): the output
+# aspect, and PhyreScene_RenderABmap's camera aspect load (fld [0x00b41cf0], 16/9, at
+# 0x00652a7a) pointed at a 4/3 of our own. Without the second write the 16:9 grid is squeezed
+# into the 4:3 (3/4 as wide: the "1.6 times closer" of the first comparison).
+@base
+@alloc K 4096
+write {K} {f:1.3333334}
+@alloc S 4096
+@protect S 0x00652000 4096
+write 0x00652a7a d905{&K}
 write 0x00c34154 abaaaa3f
 wait 2
 shot $OUT\sg-3-commands-43.bmp
