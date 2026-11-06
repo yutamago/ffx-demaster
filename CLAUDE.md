@@ -117,17 +117,9 @@ Paths with `(`/`)` (the ISO's name) upset the agent sandbox: symlink the ISO
 to a plain path (`/tmp/dm-ffx.iso`). Windows processes see WSL symlinks
 through `\\wsl.localhost` as missing: give them the real path.
 
-## FFX Music Studio (`studio/`, binary `ffx-music-studio`)
+## FFX Music Studio
 
-Plays and edits (in memory) the disc's music on `sqseq` + `spu2`
-(`docs/studio.md`): egui window, cpal output (Windows; Linux only with
-`--features alsa`), `--render <track> <s> <out.wav> [edits]` through the
-same path. `seq.rs` decodes/encodes BGMs (byte-exact) and normalizes tracks
-for note edits; the driver takes the studio's `sqseq::Mods` (default = the
-PS2 driver exactly). Tests: `cargo test -p ffx-music-studio`, with the disc
-`FFX_STUDIO_CONFIG=<demaster.toml>`. Windows: `tools/build-studio-windows.sh`.
-Capturing its window with wincap: end it with `taskkill.exe /PID` (a WSL
-`timeout` leaves the Windows process running).
+Moved to its own repository (`../ffx-music-studio`, github.com/yutamago/ffx-music-studio): it depends on the `demaster` crate (git, pinned rev), so keep the public API of `sqseq`, `spu2`, `musicjob`, `disc`, `config` and `build` it uses (`Song::log`, `spu2::decode_block`/`envelope_trace` are for its export).
 
 ## Testing in the game
 

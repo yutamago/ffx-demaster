@@ -81,20 +81,20 @@ To uninstall, delete `mods\yuta.demaster` and its line in `mods\loadorder`.
 
 ## Build
 
-The repository has three parts:
+The repository has two parts:
 
 - `converter/`: `demaster`, the converter (Rust). It needs the ffx-rust
   crates (private, `github.com/yutamago/ffx-rust`, pinned in `Cargo.toml`).
 - `mod/`: `yuta.demaster`, the Fahrenheit mod (C#, .NET 10,
   `Fahrenheit.Sdk/1.0.0-alpha12`).
-- `studio/`: `ffx-music-studio`, FFX Music Studio, a player and editor for
-  the PS2 music of your disc on the converter's sound driver
-  (`docs/studio.md`).
+
+FFX Music Studio (player, editor and DAW export of the PS2 music) moved to
+its own repository, `github.com/yutamago/ffx-music-studio`; it uses the
+`demaster` crate's sound driver as a git dependency.
 
 ```bash
 cargo build --release -p demaster              # Linux build: target/release/demaster
 tools/build-windows.sh                         # demaster.exe via cargo-xwin (Linux/WSL)
-tools/build-studio-windows.sh                  # ffx-music-studio.exe the same way
 dotnet build -c Release ffx-demaster.slnx      # mod/artifacts/deploy/rel/mods/yuta.demaster/
 dotnet run tools/package.cs -- yuta.demaster.zip [demaster.exe]   # the release zip
 cargo test -p demaster                         # config tests, incl. that mod/ knows every setting
@@ -112,10 +112,9 @@ with its licence texts from `cargo metadata`, `THIRD-PARTY-NOTICES`). Text
 files get CRLF line ends. Nothing from the game.
 
 CI (`.github/workflows/build.yml`, [`docs/ci.md`](docs/ci.md)) builds the
-mod, runs the converter and studio tests on Linux, builds `demaster.exe` and
-`ffx-music-studio.exe` on Windows and uploads the zip and the studio as
-artifacts, on every push and pull request. Pushing a tag `v*` builds the
-same with the tag's version and publishes a release with both
+mod, runs the converter tests on Linux, builds `demaster.exe` on Windows and
+uploads the zip as an artifact, on every push and pull request. Pushing a tag `v*` builds the
+same with the tag's version and publishes a release with the zip
 (`.github/workflows/release.yml`). The Rust jobs need the repository secret
 `FFX_RUST_TOKEN`: a fine-grained personal access token with read-only
 access to the contents of `yutamago/ffx-rust` ([`docs/ci.md`](docs/ci.md)
