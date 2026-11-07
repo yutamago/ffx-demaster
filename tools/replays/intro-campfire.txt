@@ -1,0 +1,66 @@
+# The boot intro: the party at the campfire under the opening's staff
+# credits (Yuna, Wakka, Kimahri, Rikku, Tidus's close-up), the scene of
+# the transparency and lighting report (2026-11-07). No input: the logo
+# (map 0x15c) runs into the opening (0x15d), which plays this scene before
+# the title. Shots every 150 updates (5 s) over about 2.5 minutes.
+waitfor 0x0112ca90:4 5d015c01 ffffffff 3000
+wait 150
+shot $OUT\intro-00.bmp
+wait 150
+shot $OUT\intro-01.bmp
+wait 150
+shot $OUT\intro-02.bmp
+wait 150
+shot $OUT\intro-03.bmp
+wait 150
+shot $OUT\intro-04.bmp
+wait 150
+shot $OUT\intro-05.bmp
+wait 150
+shot $OUT\intro-06.bmp
+wait 150
+shot $OUT\intro-07.bmp
+wait 150
+shot $OUT\intro-08.bmp
+wait 150
+shot $OUT\intro-09.bmp
+wait 150
+shot $OUT\intro-10.bmp
+wait 150
+shot $OUT\intro-11.bmp
+wait 150
+shot $OUT\intro-12.bmp
+wait 150
+shot $OUT\intro-13.bmp
+wait 150
+shot $OUT\intro-14.bmp
+wait 150
+shot $OUT\intro-15.bmp
+wait 150
+shot $OUT\intro-16.bmp
+wait 150
+shot $OUT\intro-17.bmp
+wait 150
+shot $OUT\intro-18.bmp
+wait 150
+shot $OUT\intro-19.bmp
+wait 150
+shot $OUT\intro-20.bmp
+wait 150
+shot $OUT\intro-21.bmp
+wait 150
+shot $OUT\intro-22.bmp
+wait 150
+shot $OUT\intro-23.bmp
+wait 150
+shot $OUT\intro-24.bmp
+wait 150
+shot $OUT\intro-25.bmp
+wait 150
+shot $OUT\intro-26.bmp
+wait 150
+shot $OUT\intro-27.bmp
+wait 150
+shot $OUT\intro-28.bmp
+wait 150
+shot $OUT\intro-29.bmp
