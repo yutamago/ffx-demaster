@@ -22,38 +22,10 @@ A tag with a `-` (`v0.2.0-alpha`) makes a prerelease. To release:
 git tag v0.2.0 && git push origin v0.2.0
 ```
 
-## The FFX_RUST_TOKEN secret
+## ffx-rust
 
-The converter uses crates from ffx-rust (`github.com/yutamago/ffx-rust`),
-a private repository, so cargo needs a token to fetch it. The jobs that build
-Rust start with `.github/actions/ffx-rust-access`, which reads the
-repository secret `FFX_RUST_TOKEN`, rewrites the ffx-rust URL to carry the
-token (`git config url.<token URL>.insteadOf`), lets cargo fetch through the
-git CLI (`CARGO_NET_GIT_FETCH_WITH_CLI`) and checks with `git ls-remote`
-that the token can read ffx-rust. Without the secret, or with a token that
-can't read ffx-rust, the job fails there with an error that says so; the
-mod job still runs.
-
-To create it:
-
-1. On GitHub, signed in as `yutamago`: Settings > Developer settings >
-   Personal access tokens > Fine-grained tokens > Generate new token
-   (<https://github.com/settings/personal-access-tokens/new>).
-2. Name: e.g. `ffx-demaster CI: read ffx-rust`. Expiration: your choice
-   (CI fails with the "cannot read ffx-rust" error once it expires).
-3. Resource owner: `yutamago`.
-4. Repository access: Only select repositories > `yutamago/ffx-rust`.
-5. Permissions > Repository permissions > Contents: Read-only
-   (Metadata: Read-only is added by itself). Nothing else.
-6. Generate the token and copy it.
-7. In `github.com/yutamago/ffx-demaster`: Settings > Secrets and variables >
-   Actions > New repository secret. Name `FFX_RUST_TOKEN`, value: the token.
-   (Or `gh secret set FFX_RUST_TOKEN -R yutamago/ffx-demaster` and paste it.)
-
-Then re-run the last Build run (Actions > the run > Re-run all jobs).
-
-Pull requests from forks get no secrets, so their Rust jobs fail at
-"ffx-rust access"; the mod job still checks the C# side.
-
-When the pinned ffx-rust revision in `Cargo.toml` changes, CI fetches it
-with the same token; nothing else needs updating.
+The converter uses crates from ffx-rust (`github.com/yutamago/ffx-rust`,
+public since 2026-11), pinned to a revision in `Cargo.toml`. cargo fetches
+it like any git dependency: CI needs no secret, and forks build the same.
+(Until it went public the Rust jobs read a token from the `FFX_RUST_TOKEN`
+secret; that step is gone, and the secret can be deleted.)

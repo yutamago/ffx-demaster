@@ -71,8 +71,7 @@ To uninstall, delete `mods\yuta.demaster` and its line in `mods\loadorder`.
 - [`docs/config.md`](docs/config.md): every setting.
 - [`docs/differences.md`](docs/differences.md): every difference between
   the two versions, how the mod restores it, its setting and the effort.
-- [`docs/ci.md`](docs/ci.md): CI, releases and the `FFX_RUST_TOKEN`
-  secret.
+- [`docs/ci.md`](docs/ci.md): CI and releases.
 - [`docs/disc.md`](docs/disc.md): how the PS2 disc stores its files and how
   they map to the PC's names.
 - [`docs/research/`](docs/research): the evidence. Version differences with
@@ -84,7 +83,7 @@ To uninstall, delete `mods\yuta.demaster` and its line in `mods\loadorder`.
 The repository has two parts:
 
 - `converter/`: `demaster`, the converter (Rust). It needs the ffx-rust
-  crates (private, `github.com/yutamago/ffx-rust`, pinned in `Cargo.toml`).
+  crates (`github.com/yutamago/ffx-rust`, pinned in `Cargo.toml`).
 - `mod/`: `yuta.demaster`, the Fahrenheit mod (C#, .NET 10,
   `Fahrenheit.Sdk/1.0.0-alpha12`).
 
@@ -115,10 +114,7 @@ CI (`.github/workflows/build.yml`, [`docs/ci.md`](docs/ci.md)) builds the
 mod, runs the converter tests on Linux, builds `demaster.exe` on Windows and
 uploads the zip as an artifact, on every push and pull request. Pushing a tag `v*` builds the
 same with the tag's version and publishes a release with the zip
-(`.github/workflows/release.yml`). The Rust jobs need the repository secret
-`FFX_RUST_TOKEN`: a fine-grained personal access token with read-only
-access to the contents of `yutamago/ffx-rust` ([`docs/ci.md`](docs/ci.md)
-says how to create it).
+(`.github/workflows/release.yml`).
 
 While developing, run the converter against any folder:
 

@@ -13,7 +13,7 @@ Plan and status: `docs/plan.md`. What differs: `docs/differences.md`.
   commit messages, PR descriptions or other messages (user, 2026-11-03).
 - Pushing straight to `main` is fine (user, 2026-11-02). Agents working in a
   worktree commit on their branch; the orchestrator merges.
-- ffx-rust (`../ffx-decomp`, private, github.com/yutamago/ffx-rust) is ours:
+- ffx-rust (`../ffx-decomp`, public, github.com/yutamago/ffx-rust) is ours:
   use its crates and docs freely (git dependency, pinned rev in `Cargo.toml`).
   Its `docs/formats/*.md` and `symbols/ffx.sym` are the reference for FFX.exe.
 - Decompilation findings go back into ffx-rust (user, 2026-11-02): every new
@@ -118,7 +118,7 @@ dotnet build -c Release ffx-demaster.slnx && dotnet run tools/package.cs -- out.
 ```
 
 The zip's players' README and licence header are `tools/package/*.txt`.
-CI, tag releases and the `FFX_RUST_TOKEN` secret: `docs/ci.md`.
+CI and tag releases: `docs/ci.md`.
 
 Paths with `(`/`)` (the ISO's name) upset the agent sandbox: symlink the ISO
 to a plain path (`/tmp/dm-ffx.iso`). Windows processes see WSL symlinks
