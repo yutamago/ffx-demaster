@@ -91,6 +91,8 @@ Plan and status: `docs/plan.md`. What differs: `docs/differences.md`.
   `demaster backgrounds <iso> <vbf> <out> all|<map>`.
 - `shaderjob.rs`, `dxbc.rs`: the character pixel shaders with the PS2 light
   falloff (`render.lighting`; DXBC token walk and checksum, `docs/render.md`).
+- `eventlight.rs`: the PS2's `Light_Set` colours in the event scripts the HD
+  retuned (`render.lighting.events`, `docs/render.md` "The HD's event lights").
 - Output layout: `<out>/efl/x/<archive path>` (Fahrenheit's file loader).
 - `config.rs` (`demaster.toml`, defaults in `converter/demaster.toml`),
   `jobs.rs` (Job trait + registry: new jobs go in `jobs::registry()`),
