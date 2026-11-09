@@ -2,7 +2,7 @@
 
 FFX Demaster's code and its research documents moved to
 [ffx-mods](https://github.com/yutamago/ffx-mods) (`docs/`, history kept),
-where the converter and the mods are: every setting
+where the converter, the mods and the PS2 bundle (`mods/ps2-bundle`) are: every setting
 ([`config.md`](https://github.com/yutamago/ffx-mods/blob/main/docs/config.md)),
 every difference between the versions
 ([`differences.md`](https://github.com/yutamago/ffx-mods/blob/main/docs/differences.md)),
@@ -16,4 +16,3 @@ Here, next to the tools they describe:
   mods, side by side (`tools/compare`, `tools/pcsx2ctl`, `tools/calllist`).
 - [`debugger.md`](debugger.md): the PS2 debugger (PCSX2 with a debug
   server, the `pcsx2` MCP server).
-- [`ci.md`](ci.md): how CI builds the bundle and how to release it.

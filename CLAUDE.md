@@ -1,28 +1,26 @@
 # ffx-demaster
 
 FFX Demaster restores the PS2 look in the FFX HD Remaster (Steam): presentation
-from the PS2, logic from the PC. It is a **bundle** now: the PS2 mods of
-ffx-mods (`../ffx-mods`, github.com/yutamago/ffx-mods) in one zip with one
-install step. The converter (`demaster`), the live music DLL, the shared C#
-library, every mod's code and the research and design docs are in ffx-mods
-(moved there with history; read its `CLAUDE.md` before working on them).
-This repository holds:
+from the PS2, logic from the PC. The mod is in ffx-mods (`../ffx-mods`,
+github.com/yutamago/ffx-mods): the PS2 mods there, bundled as the mod
+`mods/ps2-bundle` (`yuta.ps2-bundle`, zip `yuta.ps2-bundle-<version>.zip`,
+built and released by ffx-mods' CI from the same revision). The converter
+(`demaster`), the live music DLL, the shared C# library, every mod's code,
+the installer and the research and design docs are there (read its
+`CLAUDE.md` before working on them). This repository is the research and
+test-tool home of the PS2 mods; nothing here is built or released, and
+there is no CI:
 
 | Path | What |
 |---|---|
-| `bundle.toml` | the pinned ffx-mods revision and the bundle's mods |
-| `tools/bundle.sh` | builds `ffx-demaster-<version>.zip` from ffx-mods at that revision (`FFX_MODS=<checkout>`: a local one) |
-| `tools/package/README.txt` | the players' README in the zip (`mods/yuta.ffx-mods/README.txt`) |
-| `.github/workflows/` | CI builds and checks the bundle; a tag `v*` releases it (`docs/ci.md`) |
 | `tools/shotrun`, `tools/calllist`, `tools/replays/` | screenshots and injected game calls through the ffx-rust harness, with the mods' `efl/x` folders as loose-file mods |
 | `tools/compare`, `tools/pcsx2ctl`, `tools/loopcap`, `tools/sandbox`, `tools/py` | PS2 (PCSX2) against the PC game, sound capture, the harness's graphics options, research scripts (`docs/compare.md`, `docs/debugger.md`) |
 
-Where things are now: a change to a mod, the converter or the installer is
-made in ffx-mods (its rules: settings in sync, Job versions, no mod reads
-another mod's settings except through `mods.rs` `Foreign`); then the
-bundle picks it up by moving `rev` in `bundle.toml`. The replays' comments
-name the old paths (`mod/*.cs`, `docs/*.md`): `tools/replays/README.md`
-maps them.
+A change to a mod, the bundle, the converter or the installer is made in
+ffx-mods (its rules: settings in sync, Job versions, no mod reads another
+mod's settings except through `mods.rs` `Foreign`; a new PS2 mod also goes
+into `mods/ps2-bundle`). The replays' comments name the old paths
+(`mod/*.cs`, `docs/*.md`): `tools/replays/README.md` maps them.
 
 ## Rules
 
@@ -39,9 +37,6 @@ maps them.
 - Check results by eye and in the game before calling a feature done;
   compare against the PS2 original (the user compares with real PS2
   screenshots).
-- Moving `bundle.toml`'s `rev`: build the zip, install it into a test
-  install with `mods\yuta.ffx-mods\install.cmd`, boot, check the logs
-  (every patch applied, files replaced) and the boot intro.
 - Python: `uv run --with <deps> python -I script.py`. Rust: if cargo stalls
   on `sccache`, build with `RUSTC_WRAPPER=`.
 
@@ -60,16 +55,13 @@ maps them.
 Windows processes see WSL symlinks through `\\wsl.localhost` as missing:
 give them the real path.
 
-## Building
+## The mods' files for the tools
 
-```bash
-tools/bundle.sh dist 0.1.0-dev                         # pinned ffx-mods -> dist/ffx-demaster-0.1.0-dev.zip
-FFX_MODS=../ffx-mods tools/bundle.sh dist 0.1.0-dev    # a local ffx-mods checkout
-```
-
-Converter output for the harness tools without installing: ffx-mods'
+An installed PS2 bundle (`C:\_workspaces\fh-bundle-test\mods\yuta.*\efl\x`),
+or ffx-mods' converter output without installing:
 `target/release/demaster chr|maps|fx|ui|backgrounds|movies ...` (its
-`CLAUDE.md`).
+`CLAUDE.md`). The bundle zip: `dotnet run tools/package.cs -- <out> <version>`
+in ffx-mods (its `CLAUDE.md`, "Testing in the game").
 
 ## Testing in the game
 
@@ -81,11 +73,12 @@ Converter output for the harness tools without installing: ffx-mods'
   The harness serves files only; the mods' code patches don't run there.
   Up to 3 games run side by side (harness slots). Capture only the game
   window; never take full-desktop screenshots (they show the user's screen).
-- Fahrenheit installs: `C:\_workspaces\fh-bundle-test` (agents' bundle
-  tests), `C:\_workspaces\fh-demaster-test` (the user's: the bundle since
-  2026-11-09; touch it only when asked), `C:\_workspaces\fh-mods-test`
-  (ffx-mods' single-mod tests). Install as a player: unpack the zip, run
-  `mods\yuta.ffx-mods\install.cmd -Iso '<real Windows path>' -Game <game> -NoPause`
+- Fahrenheit installs: `C:\_workspaces\fh-bundle-test` (agents' tests of
+  the PS2 bundle), `C:\_workspaces\fh-demaster-test` (the user's: the PS2
+  bundle, `yuta.ps2-bundle` since 2026-11-09; touch it only when asked),
+  `C:\_workspaces\fh-mods-test` (ffx-mods' single-mod tests). Install as a
+  player: unpack the zip, run
+  `mods\yuta.ps2-bundle\install.cmd -Iso '<real Windows path>' -Game <game> -NoPause`
   (through `powershell.exe -File ...\install.ps1` from WSL).
 - Every game run under `flock /home/angelo/ffx-work/demaster/fh-test.lock`,
   one game at a time; wait until no other FFX.exe runs (other sessions run

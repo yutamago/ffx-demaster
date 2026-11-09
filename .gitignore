@@ -7,7 +7,5 @@ __pycache__/
 *.dds
 out/
 dist/
-# a local ffx-mods checkout for the bundle build (CI checks it out here)
-ffx-mods/
 *.zip
 .claude/
