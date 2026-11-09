@@ -4,7 +4,7 @@
 
 [ffx-mods]
 repo = "https://github.com/yutamago/ffx-mods.git"
-rev = "PIN"
+rev = "b54d4dd6ea94fa8ec4b5b7aa856e21861cdff232"
 
 # The mods in the bundle (folders of ffx-mods' mods/), in the converter's order; the
 # installer writes them into mods\loadorder in that order. Not in it: the mods of

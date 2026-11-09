@@ -33,7 +33,7 @@ Requirements
 - Your own Final Fantasy X PS2 disc, any region: an image of it (.iso), or
   the disc itself in a disc drive. install.cmd reads it once; after that the
   mods need neither the disc nor the image.
-- About 7 GB of disk space for the PS2 files, and an internet connection for
+- About 7.5 GB of disk space for the PS2 files, and an internet connection for
   the first install (the movies need ffmpeg: if none is found, an LGPL build
   of FFmpeg, 168 MB, is downloaded and checked).
 
@@ -53,8 +53,8 @@ Install
      listed; or pick an image file) and finds the game in your Steam folders
      (or asks for its folder);
    - builds the PS2 files of every mod from one pass over the disc, each
-     into its own folder. The first build takes about 45 minutes (most of it
-     the movies); later runs redo only what changed.
+     into its own folder. The first build takes about an hour (half of it the
+     movies); later runs redo only what changed.
    From a terminal: install.cmd -Iso 'D:\PS2\FFX.iso', or -Drive E, and
    -Game <game folder>, -Force (build everything again).
 3. Start the game through Fahrenheit (bin\fhstage0.exe with the path of

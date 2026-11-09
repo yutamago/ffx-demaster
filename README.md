@@ -23,10 +23,10 @@ change is a setting, so any part of the HD Remaster can be kept.
 |---|---|---|
 | [PS2 music engine](https://github.com/yutamago/ffx-mods#ps2-music-engine) | the PS2's own sound driver plays the original soundtrack live in the game | ~60 MB |
 | [PS2 soundtrack](https://github.com/yutamago/ffx-mods#ps2-soundtrack) | the "Original" soundtrack rendered from the PS2 music; new games start with it | ~890 MB |
-| [PS2 movies](https://github.com/yutamago/ffx-mods#ps2-movies) | the PS2 movies (FMVs), 4:3, with the PS2 sound | ~1.5 GB |
+| [PS2 movies](https://github.com/yutamago/ffx-mods#ps2-movies) | the PS2 movies (FMVs), 4:3, with the PS2 sound | ~1.6 GB |
 | [PS2 characters](https://github.com/yutamago/ffx-mods#ps2-characters) | PS2 models and textures: party, NPCs, monsters, aeons, weapons, objects | ~860 MB |
-| [PS2 maps](https://github.com/yutamago/ffx-mods#ps2-maps) | PS2 field and battle map textures, PS2 painted backgrounds | ~3 GB |
-| [PS2 effects](https://github.com/yutamago/ffx-mods#ps2-effects) | PS2 spell, summon and effect textures | ~500 MB |
+| [PS2 maps](https://github.com/yutamago/ffx-mods#ps2-maps) | PS2 field and battle map textures, PS2 painted backgrounds | ~2.3 GB |
+| [PS2 effects](https://github.com/yutamago/ffx-mods#ps2-effects) | PS2 spell, summon and effect textures | ~1.3 GB |
 | [PS2 lighting](https://github.com/yutamago/ffx-mods#ps2-lighting) | characters lit the PS2 way | ~80 MB |
 | [No HD post-effects](https://github.com/yutamago/ffx-mods#no-hd-post-effects) | no HD glow, no shadow maps (the PS2's ground shadows) | code |
 | [PS2 interface](https://github.com/yutamago/ffx-mods#ps2-interface) | PS2 menus, windows, font, portraits, title screen, button glyphs; a clean start-up | ~180 MB |
@@ -47,7 +47,7 @@ You need:
   [installation guide](https://github.com/fahrenheit-crew/fahrenheit/wiki/Installation-guide);
 - your own Final Fantasy X PS2 disc, any region: an image (`.iso`), or the
   disc in a disc drive;
-- about 7 GB of disk space.
+- about 7.5 GB of disk space.
 
 1. Download `ffx-demaster-<version>.zip` from the
    [releases](https://github.com/yutamago/ffx-demaster/releases) and unpack
@@ -59,7 +59,7 @@ You need:
    in them are listed; or pick an image file), finds the game in your Steam
    folders (or asks for its folder) and builds every mod's PS2 files from
    one pass over the disc, each into its own folder. The first build takes
-   about 45 minutes, most of it the movies (ffmpeg, if none is found, is
+   about an hour, half of it the movies (ffmpeg, if none is found, is
    downloaded: an LGPL build, 168 MB, checked by its SHA-256). From a
    terminal: `install.cmd -Iso 'D:\PS2\FFX.iso'` or `-Drive E`, `-Game
    <game folder>`, `-Force` (build everything again).
