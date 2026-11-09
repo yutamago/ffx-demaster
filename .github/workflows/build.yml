@@ -1,14 +1,14 @@
 # SPDX-License-Identifier: MIT
-# CI: builds and tests everything, and packages the release zip as an artifact.
-#   mod        the C# mod (Linux)
-#   linux      converter tests (Linux)
-#   windows    demaster.exe (MSVC, static CRT), the
-#              release zip (tools/package.cs) with a check that it holds no
-#              game data
-# release.yml calls this workflow with the tag, so a release is built the same way.
+# CI: builds the FFX Demaster zip, the bundle of ffx-mods' PS2 mods, from ffx-mods at the
+# revision pinned in bundle.toml (as tools/bundle.sh does on Linux), and checks it.
+#   bundle   (Windows) ffx-mods' C# mods, demaster.exe (MSVC, static CRT) and
+#            demaster_live.dll (32-bit), ffx-mods' tools/package.cs --bundle with
+#            tools/package/README.txt, then a check of the zip's contents (every mod,
+#            one demaster.exe, no game data)
+# ffx-mods' own CI tests the converter and the mods at every revision; this workflow
+# builds what the bundle ships. release.yml calls it with the tag.
 #
-# The converter depends on ffx-rust (github.com/yutamago/ffx-rust, public):
-# cargo fetches it like any git dependency, no secret needed.
+# ffx-mods and ffx-rust (its converter's dependency) are public: no secret is needed.
 name: Build
 
 on:
@@ -19,7 +19,7 @@ on:
   workflow_call:
     inputs:
       tag:
-        description: Release tag (v1.2.3); sets the version of the converter and the mod
+        description: Release tag (v1.2.3); sets the version of the bundle, the mods and the converter
         type: string
         default: ""
 
@@ -32,108 +32,100 @@ concurrency:
 
 env:
   CARGO_TERM_COLOR: always
-  # The release tag (v1.2.3), empty outside a release: then the versions in
-  # Cargo.toml and the csproj stay.
+  # The release tag (v1.2.3), empty outside a release: then the versions in ffx-mods'
+  # Cargo.toml and csproj files stay and the zip is ffx-demaster-ci.zip.
   TAG: ${{ inputs.tag }}
 
 jobs:
-  mod:
-    name: Mod (C#)
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v7
-
-    - uses: actions/setup-dotnet@v6
-      with:
-        dotnet-version: 10.0.x
-
-    - name: Build
-      run: |
-        version="${TAG#v}"
-        dotnet build -c Release ${version:+-p:Version="$version"} ffx-demaster.slnx
-
-    - uses: actions/upload-artifact@v7
-      with:
-        name: mod
-        path: mod/artifacts/deploy/rel/mods/yuta.demaster/
-        if-no-files-found: error
-        retention-days: 7
-
-  linux:
-    name: Converter tests (Linux)
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v7
-
-    - uses: dtolnay/rust-toolchain@stable
-
-    - uses: Swatinem/rust-cache@v2
-
-    - name: Test
-      run: cargo test --locked -p demaster -p demaster-live
-
-  windows:
-    name: Windows build and package
+  bundle:
+    name: Bundle (Windows)
     runs-on: windows-latest
-    needs: mod
     defaults:
       run:
         shell: bash
     steps:
     - uses: actions/checkout@v7
 
+    - name: Read the pin
+      id: pin
+      run: |
+        python -I - >> "$GITHUB_OUTPUT" <<'EOF'
+        import tomllib
+        b = tomllib.load(open("bundle.toml", "rb"))["ffx-mods"]
+        print("rev=" + b["rev"])
+        print("mods=" + ",".join(b["mods"]))
+        print("repo=" + b["repo"].removeprefix("https://github.com/").removesuffix(".git"))
+        EOF
+        cat "$GITHUB_OUTPUT"
+
+    - uses: actions/checkout@v7
+      with:
+        repository: ${{ steps.pin.outputs.repo }}
+        ref: ${{ steps.pin.outputs.rev }}
+        path: ffx-mods
+
     - uses: dtolnay/rust-toolchain@stable
       with:
         targets: x86_64-pc-windows-msvc, i686-pc-windows-msvc
 
     - uses: Swatinem/rust-cache@v2
-
-    # --target applies .cargo/config.toml's +crt-static: no Visual C++ runtime needed.
-    # A release sets DEMASTER_VERSION, which the mod compares with its own version.
-    - name: Build demaster.exe
-      run: |
-        version="${TAG#v}"
-        if [ -n "$version" ]; then export DEMASTER_VERSION="$version"; fi
-        cargo build --locked --release --target x86_64-pc-windows-msvc -p demaster
-        cargo build --locked --release --target i686-pc-windows-msvc -p demaster-live --lib
-
-    - name: Check demaster.exe runs
-      run: |
-        exe=target/x86_64-pc-windows-msvc/release/demaster.exe
-        "$exe" --version
-        "$exe" jobs
-
-    - uses: actions/download-artifact@v8
       with:
-        name: mod
-        path: mod/artifacts/deploy/rel/mods/yuta.demaster/
+        workspaces: ffx-mods
 
     - uses: actions/setup-dotnet@v6
       with:
         dotnet-version: 10.0.x
 
-    - name: Package
+    # --target applies ffx-mods' .cargo/config.toml (+crt-static): no Visual C++ runtime
+    # needed. A release sets DEMASTER_VERSION, which each mod compares with its own version.
+    - name: Build
+      working-directory: ffx-mods
       run: |
-        zip="yuta.demaster-${TAG:-ci}.zip"
-        dotnet run tools/package.cs -- "$zip"
-        echo "ZIP=$zip" >> "$GITHUB_ENV"
+        version="${TAG#v}"
+        if [ -n "$version" ]; then export DEMASTER_VERSION="$version"; fi
+        cargo build --locked --release --target x86_64-pc-windows-msvc -p demaster
+        cargo build --locked --release --target i686-pc-windows-msvc -p demaster-live --lib
+        target/x86_64-pc-windows-msvc/release/demaster.exe --version
+        dotnet build -c Release ${version:+-p:Version="$version"} ffx-mods.slnx
 
+    - name: Package
+      working-directory: ffx-mods
+      run: |
+        version="${TAG#v}"
+        dotnet run tools/package.cs -- ../dist "${version:-ci}" --bundle ffx-demaster \
+          --mods "${{ steps.pin.outputs.mods }}" --readme ../tools/package/README.txt
+
+    # The shared library with demaster.exe, the installer, README and licences; every mod
+    # of bundle.toml with its DLL, settings, README, licences and install script, no
+    # demaster.exe of its own; demaster_live.dll for the music engine; nothing else.
     - name: Check the zip
       shell: pwsh
+      env:
+        MODS: ${{ steps.pin.outputs.mods }}
       run: |
         Add-Type -AssemblyName System.IO.Compression.FileSystem
-        $zip = [IO.Compression.ZipFile]::OpenRead("$PWD/$env:ZIP")
-        $names = $zip.Entries.FullName
-        $zip.Dispose()
-        $names
-        foreach ($f in 'yuta.demaster.dll', 'yuta.demaster.manifest.json', 'demaster.exe', 'demaster_live.dll', 'demaster.toml', 'README.txt', 'LICENSES.txt') {
-          if ($names -notcontains "mods/yuta.demaster/$f") { throw "the zip has no $f" }
+        $zips = @(Get-ChildItem dist -Filter 'ffx-demaster-*.zip')
+        if ($zips.Count -ne 1) { throw "expected one zip, found $($zips.Count)" }
+        $z = [IO.Compression.ZipFile]::OpenRead($zips[0].FullName)
+        $names = $z.Entries.FullName
+        $z.Dispose()
+        "$($zips[0].Name):"; $names | ForEach-Object { "  $_" }
+        $common = 'mods/yuta.ffx-mods'
+        $need = @('yuta.ffx-mods.dll', 'yuta.ffx-mods.manifest.json', 'demaster.exe', 'install.cmd', 'install.ps1', 'README.txt', 'LICENSES.txt') | ForEach-Object { "$common/$_" }
+        $ids = $env:MODS.Split(',') | ForEach-Object { "yuta.$_" }
+        foreach ($id in $ids) {
+          foreach ($f in "$id.dll", "$id.manifest.json", 'settings.toml', 'README.txt', 'LICENSES.txt', 'install.cmd', 'install.ps1') { $need += "mods/$id/$f" }
         }
-        $bad = $names | Where-Object { $_ -notlike 'mods/yuta.demaster/*' -or $_ -match '/(efl|build|tools|preview)/|\.(phyre|iso|bin|img|png|dds|webm|fsb|wav|vbf)$' }
+        $need += 'mods/yuta.ps2-music-engine/demaster_live.dll'
+        foreach ($f in $need) { if ($names -notcontains $f) { throw "the zip has no $f" } }
+        $exes = @($names | Where-Object { $_ -like '*/demaster.exe' })
+        if ($exes.Count -ne 1) { throw "expected one demaster.exe, found: $exes" }
+        $allowed = @($common) + $ids | ForEach-Object { "mods/$_/*" }
+        $bad = $names | Where-Object { $n = $_; -not ($allowed | Where-Object { $n -like $_ }) -or $n -match '/(efl|build|tools|preview|music)/|\.(phyre|iso|bin|img|png|dds|webm|fsb|wav|vbf|bgm|wd|irx)$' }
         if ($bad) { throw "the zip contains files it must not: $bad" }
 
     - uses: actions/upload-artifact@v7
       with:
-        name: zip
-        path: ${{ env.ZIP }}
+        name: bundle
+        path: dist/*.zip
         if-no-files-found: error

@@ -1,7 +1,8 @@
 # SPDX-License-Identifier: MIT
-# Pushing a tag such as v0.2.0 builds everything as CI does (build.yml), with
-# that version in the converter and the mod, and publishes a GitHub release
-# with the mod zip (unpacks straight into the Fahrenheit folder). A tag with a "-" (v0.2.0-alpha) makes a prerelease.
+# Pushing a tag such as v0.2.0 builds the bundle as CI does (build.yml), with that
+# version in the converter and the mods, and publishes a GitHub release with
+# ffx-demaster-<version>.zip (unpacks straight into the Fahrenheit folder). A tag with
+# a "-" (v0.2.0-alpha) makes a prerelease.
 name: Release
 
 on:
@@ -38,12 +39,14 @@ jobs:
       run: |
         ls -l dist
         cat > notes.md <<EOF
-        Unpack \`yuta.demaster-$TAG.zip\` into your Fahrenheit folder, set your PS2 disc image in
-        \`mods\\yuta.demaster\\demaster.toml\` and run \`mods\\yuta.demaster\\demaster.exe\`.
-        The zip's README.txt has the details. No game data is included: you need an image of
-        your own Final Fantasy X PS2 disc and the Steam HD Remaster.
+        FFX Demaster: the PS2 mods of [ffx-mods](https://github.com/yutamago/ffx-mods) in one
+        zip. Unpack \`ffx-demaster-${TAG#v}.zip\` into your Fahrenheit folder and double-click
+        \`mods\\yuta.ffx-mods\\install.cmd\`: it adds every mod to \`mods\\loadorder\` and builds
+        their PS2 files from your own Final Fantasy X PS2 disc (an image, or the disc in a drive)
+        in one pass. No game data is included. The zip's README.txt has the details; the mods
+        are those of bundle.toml at this tag, built from ffx-mods at its pinned revision.
         EOF
-        args=(release create "$TAG" "dist/yuta.demaster-$TAG.zip"
+        args=(release create "$TAG" "dist/ffx-demaster-${TAG#v}.zip"
               --repo "$REPO" --verify-tag --title "FFX Demaster $TAG"
               --notes-file notes.md --generate-notes)
         if [[ "$TAG" == *-* ]]; then args+=(--prerelease); fi

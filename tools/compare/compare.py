@@ -29,8 +29,10 @@ Commands (replays default to every [[screen]] of scenes.toml):
         Per-region numbers (both) in <out>/report.tsv and on stdout.
   all   ps2, hw, pc, then diff (one game at a time).
 
-Options: --out <dir> (default /mnt/c/shots/compare), --mod <efl/x dir>
-(default ~/ffx-work/demaster/scratch/compare-ui/efl/x), --lang de|en (PC
+Options: --out <dir> (default /mnt/c/shots/compare), --mod <efl/x dir>,
+again for each further folder (the mods of ffx-mods each have their own:
+--mod <Fahrenheit>/mods/yuta.ps2-interface/efl/x --mod .../yuta.ps2-maps/efl/x;
+default ~/ffx-work/demaster/scratch/compare-ui/efl/x), --lang de|en (PC
 language, default de), --hw vk|dx12|dx11, --hw-scale N.
 """
 import glob
@@ -186,7 +188,7 @@ def calllist_manifest():
     return os.path.join(dst, 'Cargo.toml')
 
 
-def run_pc(screens, out, mod, lang):
+def run_pc(screens, out, mods, lang):
     if pcsx2_running():
         sys.exit('PCSX2 is running: stop it first (one game at a time)')
     from PIL import Image
@@ -210,7 +212,7 @@ def run_pc(screens, out, mod, lang):
         env.setdefault('FFX_GAME_DIR', os.path.expanduser('~/steam-games/FFX-X2-HD'))
         subprocess.run(['cargo', 'run', '-j', '4', '--release', '--manifest-path',
                         calllist_manifest(), '--',
-                        rf, winpath(od) + '\\trace', mod], cwd=find_decomp(), env=env, check=True)
+                        rf, winpath(od) + '\\trace', *mods], cwd=find_decomp(), env=env, check=True)
         # the harness writes 3.6 MB BMPs: keep PNGs
         for name in sorted(os.listdir(od)):
             if name.endswith('.bmp'):
@@ -327,7 +329,7 @@ def run_diff(screens, out):
 def main():
     args = sys.argv[1:]
     out = '/mnt/c/shots/compare'
-    mod = os.path.expanduser('~/ffx-work/demaster/scratch/compare-ui/efl/x')
+    mods = []
     lang = 'de'
     hw, hw_scale = 'vk', 2
     rest = []
@@ -336,7 +338,7 @@ def main():
         if a == '--out':
             out = args.pop(0)
         elif a == '--mod':
-            mod = args.pop(0)
+            mods.append(args.pop(0))
         elif a == '--lang':
             lang = args.pop(0)
         elif a == '--hw':
@@ -354,7 +356,7 @@ def main():
     if cmd in ('hw', 'all'):
         run_hw(screens, out, hw, hw_scale)
     if cmd in ('pc', 'all'):
-        run_pc(screens, out, mod, lang)
+        run_pc(screens, out, mods or [os.path.expanduser('~/ffx-work/demaster/scratch/compare-ui/efl/x')], lang)
     if cmd in ('diff', 'all'):
         run_diff(screens, out)
 

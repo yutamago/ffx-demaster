@@ -3,29 +3,50 @@
 ## Workflows
 
 `.github/workflows/build.yml` runs on every push to a branch, on pull
-requests and by hand (Actions > Build > Run workflow):
+requests and by hand (Actions > Build > Run workflow). One job, on
+windows-latest:
 
-| Job | Runner | What |
-|---|---|---|
-| Mod (C#) | ubuntu-latest | `dotnet build -c Release ffx-demaster.slnx`; uploads the mod folder (artifact `mod`). Needs no secret. |
-| Converter tests (Linux) | ubuntu-latest | `cargo test --locked -p demaster -p demaster-live`. Tests that need the disc or the game skip themselves. |
-| Windows build and package | windows-latest | `cargo build --locked --release --target x86_64-pc-windows-msvc -p demaster` (static CRT from `.cargo/config.toml`), runs `demaster.exe --version` and `jobs`, packages the zip with `tools/package.cs` from the `mod` artifact and checks it: the required files are there and nothing else (no `efl/`, `build/`, `tools/`, `.phyre`, `.iso`, images, sound, movies). Uploads `zip` (`yuta.demaster-ci.zip`). |
+1. reads `bundle.toml`: the ffx-mods revision and the bundle's mods;
+2. checks out ffx-mods (github.com/yutamago/ffx-mods, public) at that
+   revision into `ffx-mods/`;
+3. builds there what the zip ships: `demaster.exe`
+   (`x86_64-pc-windows-msvc`) and `demaster_live.dll`
+   (`i686-pc-windows-msvc`), static CRT from ffx-mods' `.cargo/config.toml`,
+   and every C# mod (`dotnet build -c Release ffx-mods.slnx`);
+4. packages the bundle with ffx-mods' `tools/package.cs --bundle
+   ffx-demaster --mods <bundle.toml's mods> --readme tools/package/README.txt`;
+5. checks the zip: the shared library with `demaster.exe`, `install.cmd`,
+   `install.ps1`, `README.txt`, `LICENSES.txt`; each mod of `bundle.toml`
+   with its DLL, manifest, `settings.toml`, `README.txt`, `LICENSES.txt`
+   and install script; `demaster_live.dll` for the music engine; exactly
+   one `demaster.exe`; nothing else (no `efl/`, `build/`, `music/`,
+   `tools/`, `.phyre`, `.iso`, images, sound, movies);
+6. uploads the zip (artifact `bundle`, `ffx-demaster-ci.zip`).
+
+The converter's and the mods' tests run in ffx-mods' own CI at every
+revision; a revision goes into `bundle.toml` after it passed there and was
+tested in the game.
 
 `.github/workflows/release.yml` runs when a tag `v*` is pushed. It calls
 `build.yml` with the tag, which sets the version of the converter
-(`DEMASTER_VERSION`) and of the mod (`-p:Version`) to the tag without the
-`v` (the mod compares the two), then creates a GitHub release named
-"FFX Demaster <tag>" with `yuta.demaster-<tag>.zip`, a short install note and GitHub's generated notes.
-A tag with a `-` (`v0.2.0-alpha`) makes a prerelease. To release:
+(`DEMASTER_VERSION`) and of the mods (`-p:Version`) to the tag without the
+`v` (each mod compares its version with the converter's in its build
+stamp), then creates a GitHub release named "FFX Demaster <tag>" with
+`ffx-demaster-<version>.zip`, a short install note and GitHub's generated
+notes. A tag with a `-` (`v0.2.0-alpha`) makes a prerelease. To release:
 
 ```bash
 git tag v0.2.0 && git push origin v0.2.0
 ```
 
-## ffx-rust
+## No secrets
 
-The converter uses crates from ffx-rust (`github.com/yutamago/ffx-rust`,
-public since 2026-11), pinned to a revision in `Cargo.toml`. cargo fetches
-it like any git dependency: CI needs no secret, and forks build the same.
-(Until it went public the Rust jobs read a token from the `FFX_RUST_TOKEN`
-secret; that step is gone, and the secret can be deleted.)
+ffx-mods and ffx-rust (the converter's crates, pinned in ffx-mods'
+`Cargo.toml`) are public: the checkout and cargo fetch them without a
+token, and pull requests from forks build the same way.
+
+## Locally
+
+`tools/bundle.sh <out dir> [version]` does the same on Linux/WSL with
+cargo-xwin (`FFX_MODS=<checkout>` builds from a local ffx-mods instead of
+the pinned revision).

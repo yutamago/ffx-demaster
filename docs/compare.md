@@ -18,6 +18,13 @@ writes two PNGs, PS2 | Demaster | difference, and numbers per screen region:
 Output: `/mnt/c/shots/compare/` (`ps2/`, `ps2hw/`, `pc/` the raw frames,
 `report.tsv` the numbers). Nothing of it goes into git.
 
+The code under test is in ffx-mods (github.com/yutamago/ffx-mods, checked
+out next to this repository as `../ffx-mods`): the converter, the mods'
+C# code and the other documents this page names (`docs/ui.md`,
+`docs/font.md`, `docs/screen.md`, `docs/ffx-rust-findings.md`: ffx-mods'
+`docs/`). These tools stay here with the replays; they take the mods'
+`efl/x` folders as they are.
+
 ## Pieces
 
 | Piece | What |
@@ -39,7 +46,7 @@ uv run python -I tools/compare/setup.py /mnt/c/_workspaces/pcsx2 \
 tools/compare/pcsx2.sh start                               # once: the save states
 tools/compare/pcsx2.sh ctl run '<Windows path of tools\compare\states.txt>'
 tools/compare/pcsx2.sh stop
-target/release/demaster ui /tmp/dm-ffx.iso ~/steam-games/FFX-X2-HD/data/FFX_Data.vbf \
+../ffx-mods/target/release/demaster ui /tmp/dm-ffx.iso ~/steam-games/FFX-X2-HD/data/FFX_Data.vbf \
   ~/ffx-work/demaster/scratch/compare-ui                   # the mod files the PC side uses
 uv run --with pillow --with numpy python -I tools/compare/compare.py all [replay...]
 ```
@@ -48,7 +55,9 @@ uv run --with pillow --with numpy python -I tools/compare/compare.py all [replay
 keeps each shot and its GS dump; `hw` replays the dumps with the hardware
 renderer (`--hw vk|dx12|dx11`, `--hw-scale N`, one PCSX2 launch per dump,
 the ini back to software afterwards); `pc` runs the PC replays through
-`tools/calllist` (`--mod`, `--lang de`); `diff` writes the PNGs and
+`tools/calllist` (`--mod <efl/x folder>`, once per folder: the installed
+mods' own, `<Fahrenheit>/mods/yuta.ps2-interface/efl/x` and others, work
+as they are; `--lang de`); `diff` writes the PNGs and
 `report.tsv`. Each step runs one game at a time and refuses to start the PC
 game while a PCSX2 runs. A run of all twelve shots takes about 15 minutes,
 most of it the PC side.
