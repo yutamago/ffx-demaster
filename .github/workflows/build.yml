@@ -120,7 +120,7 @@ jobs:
         foreach ($f in $need) { if ($names -notcontains $f) { throw "the zip has no $f" } }
         $exes = @($names | Where-Object { $_ -like '*/demaster.exe' })
         if ($exes.Count -ne 1) { throw "expected one demaster.exe, found: $exes" }
-        $allowed = @($common) + $ids | ForEach-Object { "mods/$_/*" }
+        $allowed = @('yuta.ffx-mods') + $ids | ForEach-Object { "mods/$_/*" }
         $bad = $names | Where-Object { $n = $_; -not ($allowed | Where-Object { $n -like $_ }) -or $n -match '/(efl|build|tools|preview|music)/|\.(phyre|iso|bin|img|png|dds|webm|fsb|wav|vbf|bgm|wd|irx)$' }
         if ($bad) { throw "the zip contains files it must not: $bad" }
 
