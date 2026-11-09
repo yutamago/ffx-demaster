@@ -1,7 +1,0 @@
-# demaster.exe runs without the Visual C++ runtime installed.
-[target.x86_64-pc-windows-msvc]
-rustflags = ["-C", "target-feature=+crt-static"]
-
-# demaster_live.dll (32-bit, loaded into FFX.exe) likewise.
-[target.i686-pc-windows-msvc]
-rustflags = ["-C", "target-feature=+crt-static"]

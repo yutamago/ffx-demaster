@@ -1,18 +1,42 @@
 # FFX Demaster
 
-A [Fahrenheit](https://github.com/fahrenheit-crew/fahrenheit) mod that makes
-the Final Fantasy X HD Remaster (Steam) look like the original PS2 game:
-presentation from the PS2, logic from the PC.
+The Final Fantasy X HD Remaster (Steam) with the look and sound of the
+original PS2 game: presentation from the PS2, logic from the PC. PS2
+models, textures, maps, effects, movies, music, lighting, font and menus,
+the 4:3 picture, with the PC version's game logic underneath.
 
-**Status: early.** The PS2 textures of the monsters, NPCs, aeons, weapons
-and objects whose HD model kept the PS2 mesh work. Maps, effects, the party
-models, the interface and the rendering changes are still to come
-([`docs/plan.md`](docs/plan.md)).
+FFX Demaster is a **bundle**: the PS2 mods of
+[ffx-mods](https://github.com/yutamago/ffx-mods), in one zip, installed and
+built in one step. The code of every mod, the converter and their
+documents are in ffx-mods; this repository pins the ffx-mods revision the
+bundle is built from (`bundle.toml`), builds the zip, and holds the test
+and comparison tools (PCSX2 against the PC game, below).
 
-The mod ships no game assets. Its converter, `demaster.exe`, reads your own
-PS2 disc image and writes the PS2 textures, models and movies as loose files
-that Fahrenheit's file loader puts in place of the HD ones. Every change is a
-setting, so any part of the HD Remaster can be kept.
+The zip ships no game data. Its converter, `demaster.exe`, reads your own
+PS2 disc (an image or the disc in a drive) and writes the PS2 files as loose
+files that Fahrenheit's file loader puts in place of the HD ones. Every
+change is a setting, so any part of the HD Remaster can be kept.
+
+## The mods
+
+| Mod | What it changes | Size |
+|---|---|---|
+| [PS2 music engine](https://github.com/yutamago/ffx-mods#ps2-music-engine) | the PS2's own sound driver plays the original soundtrack live in the game | ~60 MB |
+| [PS2 soundtrack](https://github.com/yutamago/ffx-mods#ps2-soundtrack) | the "Original" soundtrack rendered from the PS2 music; new games start with it | ~890 MB |
+| [PS2 movies](https://github.com/yutamago/ffx-mods#ps2-movies) | the PS2 movies (FMVs), 4:3, with the PS2 sound | ~1.6 GB |
+| [PS2 characters](https://github.com/yutamago/ffx-mods#ps2-characters) | PS2 models and textures: party, NPCs, monsters, aeons, weapons, objects | ~860 MB |
+| [PS2 maps](https://github.com/yutamago/ffx-mods#ps2-maps) | PS2 field and battle map textures, PS2 painted backgrounds | ~2.3 GB |
+| [PS2 effects](https://github.com/yutamago/ffx-mods#ps2-effects) | PS2 spell, summon and effect textures | ~1.3 GB |
+| [PS2 lighting](https://github.com/yutamago/ffx-mods#ps2-lighting) | characters lit the PS2 way | ~80 MB |
+| [No HD post-effects](https://github.com/yutamago/ffx-mods#no-hd-post-effects) | no HD glow, no shadow maps (the PS2's ground shadows) | code |
+| [PS2 interface](https://github.com/yutamago/ffx-mods#ps2-interface) | PS2 menus, windows, font, portraits, title screen, button glyphs; a clean start-up | ~180 MB |
+| [PS2 aspect ratio](https://github.com/yutamago/ffx-mods#ps2-aspect-ratio) | the 4:3 picture with the PS2 camera | code |
+| [PS2 game feel](https://github.com/yutamago/ffx-mods#ps2-game-feel) | PS2 run speed, battle menu without input delay, battle subtitles | code |
+| [Bug fixes](https://github.com/yutamago/ffx-mods#bug-fixes) | NPC mouths, the Farplane video, Lulu's Fury spins | code |
+
+Sizes: the files the installer builds with the default settings (German PAL
+disc). The other mods of ffx-mods (Modern Minimap, FPS unlock) are not PS2
+parts and not in the bundle; their own zips install next to it.
 
 ## Install
 
@@ -21,175 +45,143 @@ You need:
 - [Fahrenheit](https://github.com/fahrenheit-crew/fahrenheit/releases)
   1.0.0-alpha12 or later, installed as in its
   [installation guide](https://github.com/fahrenheit-crew/fahrenheit/wiki/Installation-guide);
-- an image (`.iso`) of your own Final Fantasy X PS2 disc, any region.
+- your own Final Fantasy X PS2 disc, any region: an image (`.iso`), or the
+  disc in a disc drive;
+- about 7.5 GB of disk space.
 
-The release zip has no game data: `demaster.exe` builds the PS2 files on
-your computer from your own disc image and your own copy of the game.
-
-1. Download `yuta.demaster-<version>.zip` from the
+1. Download `ffx-demaster-<version>.zip` from the
    [releases](https://github.com/yutamago/ffx-demaster/releases) and unpack
-   it into your Fahrenheit folder, so the mod ends up in
-   `mods\yuta.demaster\` (next to Fahrenheit's `bin` folder). Its
-   `README.txt` repeats these steps.
-2. Open `mods\yuta.demaster\demaster.toml` in a text editor and set `iso`
-   under `[source]` to your disc image, in single quotes:
+   it into your Fahrenheit folder (the one with Fahrenheit's `bin` folder).
+   It adds `mods\yuta.ffx-mods\` (the shared library, the converter and the
+   installer) and one folder per mod, `mods\yuta.<mod>\`.
+2. Double-click `mods\yuta.ffx-mods\install.cmd`. It adds every mod to
+   `mods\loadorder`, asks where your disc is (the disc drives with the disc
+   in them are listed; or pick an image file), finds the game in your Steam
+   folders (or asks for its folder) and builds every mod's PS2 files from
+   one pass over the disc, each into its own folder. The first build takes
+   about an hour, half of it the movies (ffmpeg, if none is found, is
+   downloaded: an LGPL build, 168 MB, checked by its SHA-256). From a
+   terminal: `install.cmd -Iso 'D:\PS2\FFX.iso'` or `-Drive E`, `-Game
+   <game folder>`, `-Force` (build everything again).
+3. Start the game through Fahrenheit (`bin\fhstage0.exe <path to FFX.exe>`).
 
-   ```toml
-   [source]
-   iso = 'D:\PS2\Final Fantasy X.iso'
-   ```
+In the game, **F8** opens one window with a section per mod: whether its
+files match its settings (and the command to rebuild them) and which code
+patches are on. It opens by itself when something is wrong.
 
-   If the game isn't in a usual Steam folder, also set `game` to the folder
-   with `FFX.exe`.
-3. Run `mods\yuta.demaster\demaster.exe` (double-click, or `demaster.exe
-   build` in a terminal). It writes the PS2 files into the mod folder
-   (about 7 GB with the default settings); the first run takes a while.
-   The movies need ffmpeg: if none is found, the first build downloads an
-   LGPL build of FFmpeg (168 MB) into `mods\yuta.demaster\tools\` and
-   checks its SHA-256 (`docs/movies.md`).
-4. Add a line `yuta.demaster` to `mods\loadorder` (create the file if it
-   isn't there).
-5. Start the game through Fahrenheit (`bin\fhstage0.exe <path to FFX.exe>`).
-
-In the game, **F8** opens a small window that says whether the PS2 files
-match `demaster.toml`, and how to rebuild them if not. It opens by itself
-when they don't.
+**Upgrading from the old all-in-one FFX Demaster** (`mods\yuta.demaster`):
+the installer takes `yuta.demaster` out of `mods\loadorder` (the new mods
+replace it) and offers the disc image the old one used. Copy the settings
+you had changed in `mods\yuta.demaster\demaster.toml` into the mods'
+`settings.toml` files (same keys, [`docs/config.md`](https://github.com/yutamago/ffx-mods/blob/main/docs/config.md)
+says which mod has which; the old `audio.music_engine = "ps2"` is
+`audio.music = "ps2"` in PS2 soundtrack now), run the installer again, then
+delete `mods\yuta.demaster\`.
 
 ## Settings
 
-Every difference between the versions is a setting in `demaster.toml`; the
-defaults give the PS2 look with the PC's game logic. [`docs/config.md`](docs/config.md)
-describes them all. **After changing a setting, run `demaster.exe` again and
-restart the game**: Fahrenheit picks up the mod's files only at startup. A
-rebuild only redoes what changed and removes the files of whatever you
-switched back to HD.
+**Per mod**: each mod has its own `mods\yuta.<mod>\settings.toml` with
+only its settings and a comment above each; the defaults are the PS2's.
+There is no single settings file for the bundle. The installer writes the
+disc and the game folder into every mod's `[source]`.
+[`docs/config.md`](https://github.com/yutamago/ffx-mods/blob/main/docs/config.md)
+in ffx-mods describes every setting and which mod has it.
 
-To uninstall, delete `mods\yuta.demaster` and its line in `mods\loadorder`.
+After changing a setting, run `mods\yuta.ffx-mods\install.cmd` again (it
+rebuilds only what changed, in every mod; a mod's own `install.cmd` does
+that mod alone) and restart the game. Code-only settings (aspect ratio,
+game feel, bug fixes, post-effects) need only the restart.
 
-## Documents
+## Switching single mods off
 
-- [`docs/config.md`](docs/config.md): every setting.
-- [`docs/differences.md`](docs/differences.md): every difference between
-  the two versions, how the mod restores it, its setting and the effort.
-- [`docs/ci.md`](docs/ci.md): CI and releases.
-- [`docs/disc.md`](docs/disc.md): how the PS2 disc stores its files and how
-  they map to the PC's names.
-- [`docs/research/`](docs/research): the evidence. Version differences with
-  sources, the measured HD-vs-PS2 asset comparison, the PS2 texture formats,
-  Fahrenheit's file loading.
+- **Part of a mod**: set its setting to `"hd"` (`false` for a fix) in that
+  mod's `settings.toml` and run the installer again; the files of that part
+  are removed.
+- **A whole mod**: delete its line in `mods\loadorder` (Fahrenheit then
+  doesn't load it), and its folder to get the disk space back. The
+  installer in `mods\yuta.ffx-mods\` adds every mod whose folder is there
+  back to `mods\loadorder`.
+
+The mods work alone and in any combination. PS2 movies and PS2 maps (the
+painted backgrounds) are built for the picture the game shows: 4:3 with PS2
+aspect ratio, 16:9 without; after adding, removing or switching PS2 aspect
+ratio, F8 shows them as "rebuild needed" until the installer runs again.
+
+**Uninstall**: delete the mod folders (`mods\yuta.ps2-*`,
+`mods\yuta.no-hd-post-effects`, `mods\yuta.bug-fixes`,
+`mods\yuta.ffx-mods`) and their lines in `mods\loadorder`.
 
 ## Build
 
-The repository has two parts:
-
-- `converter/`: `demaster`, the converter (Rust). It needs the ffx-rust
-  crates (`github.com/yutamago/ffx-rust`, pinned in `Cargo.toml`).
-- `mod/`: `yuta.demaster`, the Fahrenheit mod (C#, .NET 10,
-  `Fahrenheit.Sdk/1.0.0-alpha12`).
-
-FFX Music Studio (player, editor and DAW export of the PS2 music) moved to
-its own repository, `github.com/yutamago/ffx-music-studio`; it uses the
-`demaster` crate's sound driver as a git dependency.
-
 ```bash
-cargo build --release -p demaster              # Linux build: target/release/demaster
-tools/build-windows.sh                         # demaster.exe via cargo-xwin (Linux/WSL)
-dotnet build -c Release ffx-demaster.slnx      # mod/artifacts/deploy/rel/mods/yuta.demaster/
-dotnet run tools/package.cs -- yuta.demaster.zip [demaster.exe]   # the release zip
-cargo test -p demaster                         # config tests, incl. that mod/ knows every setting
+tools/bundle.sh dist [version]     # dist/ffx-demaster-<version>.zip
+FFX_MODS=../ffx-mods tools/bundle.sh dist 0.1.0-dev   # from a local ffx-mods checkout
 ```
 
-On Windows, `cargo build --release -p demaster --target
-x86_64-pc-windows-msvc` builds `demaster.exe` directly.
+`tools/bundle.sh` checks out ffx-mods at the revision in `bundle.toml`
+(into `~/.cache/ffx-demaster/ffx-mods`), builds its mods (`dotnet`),
+`demaster.exe` and `demaster_live.dll` (cargo-xwin) and runs its
+`tools/package.cs --bundle` with the mods of `bundle.toml` and this
+repository's players' `tools/package/README.txt`. The zip holds
+`mods/yuta.ffx-mods/` (the shared library, the one `demaster.exe`,
+`install.cmd`/`install.ps1` for all the mods, `README.txt`,
+`LICENSES.txt`) and each mod's folder (DLL, `settings.toml`, `README.txt`,
+its own `install.cmd`, `LICENSES.txt`; `demaster_live.dll` for the music
+engine). Nothing from the game.
 
-The zip (`tools/package.cs`) holds `mods/yuta.demaster/` with the mod
-(`yuta.demaster.dll`, `.deps.json`, `.runtimeconfig.json`,
-`.manifest.json`, `.pdb`), `demaster.exe`, the default `demaster.toml`, the
-players' `README.txt` (`tools/package/README.txt`), `config.md` and
-`LICENSES.txt` (`tools/package/LICENSES.txt`, every crate in `demaster.exe`
-with its licence texts from `cargo metadata`, `THIRD-PARTY-NOTICES`). Text
-files get CRLF line ends. Nothing from the game.
+To move the bundle to a newer ffx-mods: set `rev` in `bundle.toml`, build,
+install the zip into a Fahrenheit test install and play the boot intro.
 
 CI (`.github/workflows/build.yml`, [`docs/ci.md`](docs/ci.md)) builds the
-mod, runs the converter tests on Linux, builds `demaster.exe` on Windows and
-uploads the zip as an artifact, on every push and pull request. Pushing a tag `v*` builds the
-same with the tag's version and publishes a release with the zip
-(`.github/workflows/release.yml`).
-
-While developing, run the converter against any folder:
-
-```bash
-target/release/demaster build --config my.toml --mod-dir <Fahrenheit>/mods/yuta.demaster
-```
-
-### Adding a converter job
-
-A job turns part of the disc into files for the mod folder and is switched by
-settings. Implement `jobs::Job` (`name`, `settings`, `enabled`, `run`) in a
-module and add its jobs to `jobs::registry()` in `converter/src/jobs.rs`.
-`run` gets the disc (`ctx.disc(|d| ...)`), `FFX_Data.vbf` (`ctx.pc`) and the
-config, and writes files with `out.put(archive_path, bytes)`. The build
-handles the rest: skipping unchanged jobs, removing the files of jobs that
-are off, the manifest and the stamp. Every setting already exists in
-`converter/src/config.rs`; a new one goes there, in `converter/demaster.toml`,
-`mod/Settings.cs` and `docs/config.md` (a test checks they agree). Settings
-applied by code go in `mod/Patches.cs`.
-
-## Tools
-
-- [`tools/ps2x`](tools/ps2x): extracts every file of a PS2 disc image under
-  the PC's names and unpacks the compressed ones.
-
-  ```bash
-  cargo run --release --manifest-path tools/ps2x/Cargo.toml -- \
-    <disc.iso> <cdrom.fnd> <sizetbl.bin> <out dir> <jp cdrom.fid>
-  ```
-
-  `cdrom.fnd` and the `jp` `cdrom.fid` come from the PC archive
-  (`ffx_ps2/ffx/proj/battle/jp/cddata/`), `sizetbl.bin` from the disc's region
-  folder (`ffx_ps2/ffx/proj/prog/cdidx/<region>/`).
-- [`tools/py`](tools/py): research scripts. `ps2tex.py` decodes PS2
-  character and map textures to PNG; the others compare PS2 and HD models and
-  maps. Run them with `uv run --with pillow --with numpy python -I …`. Some
-  still have the research machine's paths in them.
-
-Never commit disc images, extracted files or anything from the game's
-archives.
+same zip on Windows on every push and pull request and checks its contents;
+a tag `v*` publishes a release with it (`release.yml`). No secrets: ffx-mods
+and ffx-rust are public.
 
 ## Testing in the game
 
 `tools/shotrun` plays a replay script (`tools/replays/*.txt`) through the
-ffx-rust test harness, with the converter's output as a loose-file mod, and
-saves screenshots. It needs an ffx-rust checkout next to this repo (built hook:
-`tools/build-hook.sh` there) and runs from that checkout:
+ffx-rust test harness, with the mods' files as loose-file mods (one
+argument per `efl/x` folder), and saves screenshots. It needs an ffx-rust
+checkout next to this repo (built hook: `tools/build-hook.sh` there) and
+runs from that checkout:
 
 ```bash
+M=/mnt/c/_workspaces/fh-bundle-test/mods      # an installed bundle (or ffx-mods' converter output)
 cd ../ffx-decomp
 FFX_GAME_DIR=~/steam-games/FFX-X2-HD cargo run --release --manifest-path ../ffx-demaster/tools/shotrun/Cargo.toml -- \
-  ../ffx-demaster/tools/replays/battle-djose.txt 'C:\shots\ps2\djose.trace' <out>/efl/x
+  ../ffx-demaster/tools/replays/battle-djose.txt 'C:\shots\ps2\djose.trace' \
+  $M/yuta.ps2-characters/efl/x $M/yuta.ps2-maps/efl/x $M/yuta.ps2-interface/efl/x
 ```
 
-Run it once without the mod folder for the HD baseline. A replay with a `realtime` line runs at the game's
-own rate with FMOD on the sound card (no fast mode, no virtual clock);
-`tools/loopcap` (`tools/build-loopcap.sh`) records one process's sound with
-the time of each packet, for lip-sync measurements (`docs/timing.md`, "Voice
-start"). `tools/calllist` is
-the same with a few extra commands for checking C# draw hooks the harness
-can't run: it makes the game itself call a list of FFX.exe functions from a
-draw callback (`tools/replays/ui-battle-*.txt`, `docs/ui.md`). `FFX_HOOK_LOG_OPENS=1`
-(passed through `WSLENV`) logs every file the game opens; files served by the
-mod show as `mods:`. Don't set `SHOTRUN_ORIGINAL`: it turns off the hook that
-serves the mod files.
+The harness serves files only: the mods' code patches don't run in it (the
+replays stand in for some of them with jumps and writes). Run it once
+without mod folders for the HD baseline. A replay with a `realtime` line
+runs at the game's own rate with FMOD on the sound card (no fast mode, no
+virtual clock); `tools/loopcap` (`tools/build-loopcap.sh`) records one
+process's sound with the time of each packet, for lip-sync measurements
+(ffx-mods' `docs/timing.md`, "Voice start"). `tools/calllist` is the same
+with a few extra commands for checking C# draw hooks the harness can't run:
+it makes the game itself call a list of FFX.exe functions from a draw
+callback (`tools/replays/ui-battle-*.txt`, ffx-mods' `docs/ui.md`).
+`FFX_HOOK_LOG_OPENS=1` (passed through `WSLENV`) logs every file the game
+opens; files served by a mod show as `mods:`. Don't set
+`SHOTRUN_ORIGINAL`: it turns off the hook that serves the mod files. The
+replays' comments name files by their FFX Demaster paths before the move
+([`tools/replays/README.md`](tools/replays/README.md) maps them).
 
-### PS2 vs Demaster (`tools/compare`)
+Converter output for these tools, without installing: ffx-mods'
+`target/release/demaster chr|maps|fx|ui|backgrounds ... <out>` writes
+`<out>/efl/x` (ffx-mods' `CLAUDE.md`).
 
-`tools/compare` puts the PS2 original, running in PCSX2, next to the
-Demaster for the same scene ([`docs/compare.md`](docs/compare.md)): per
-scene an exact view (PCSX2's software renderer at 512x416 against the
-Demaster scaled down) and a detail view (the hardware renderer upscaled
-from a GS dump of the same frame against the Demaster at full size), each
-PS2 | Demaster | difference, with numbers per screen region. PCSX2
-(portable, `C:\_workspaces\pcsx2`) is driven by `pcsx2ctl.exe`
+### PS2 vs PC (`tools/compare`)
+
+`tools/compare` puts the PS2 original, running in PCSX2, next to the PC
+game with the mods for the same scene ([`docs/compare.md`](docs/compare.md)):
+per scene an exact view (PCSX2's software renderer at 512x416 against the
+PC scaled down) and a detail view (the hardware renderer upscaled from a GS
+dump of the same frame against the PC at full size), each PS2 | PC |
+difference, with numbers per screen region. PCSX2 (portable,
+`C:\_workspaces\pcsx2`) is driven by `pcsx2ctl.exe`
 (`tools/build-pcsx2ctl.sh`): PINE for memory and save states, keys posted
 to its window for the pad and the hotkeys, PCSX2's own screenshots and GS
 dumps. The PC saves the replays use go on a PCSX2 folder memory card as PS2
@@ -199,19 +191,33 @@ saves (the formats are the same).
 tools/build-pcsx2ctl.sh                                         # once
 uv run python -I tools/compare/setup.py /mnt/c/_workspaces/pcsx2 <PC save folder> 1 5   # once
 tools/compare/pcsx2.sh start; tools/compare/pcsx2.sh ctl run '<Windows path of tools\compare\states.txt>'; tools/compare/pcsx2.sh stop   # once: save states
-target/release/demaster ui /tmp/dm-ffx.iso ~/steam-games/FFX-X2-HD/data/FFX_Data.vbf ~/ffx-work/demaster/scratch/compare-ui
-uv run --with pillow --with numpy python -I tools/compare/compare.py all [replay...]
+../ffx-mods/target/release/demaster ui /tmp/dm-ffx.iso ~/steam-games/FFX-X2-HD/data/FFX_Data.vbf ~/ffx-work/demaster/scratch/compare-ui
+uv run --with pillow --with numpy python -I tools/compare/compare.py all [--mod <efl/x>]... [replay...]
 ```
 
 `compare.py ps2`, `hw`, `pc` and `diff` run the steps alone (one game at a
 time); the PNGs and `report.tsv` land in `/mnt/c/shots/compare/`.
 `tools/compare/pcsx2.sh start|stop|ctl` runs PCSX2 by hand (stop ends it by
-PID).
+PID). The PS2 debugger (PCSX2 with a debug server and the `pcsx2` MCP
+server): [`docs/debugger.md`](docs/debugger.md).
 
-A real Fahrenheit install for manual tests: `C:\_workspaces\fh-demaster-test`
-(alpha12, mod `yuta.demaster`, game copy without the ffx-rust hook in
-`~/ffx-work/demaster/game`). Its `run.ps1 -Seconds N` starts the game through
-`fhstage0.exe` and stops it after N seconds; the results are in
-`logs\<session>\` (`Yuta.Demaster.DemasterModule.log`: build status and
-patches; `Fahrenheit.Runtime.FhFileLoaderModule.log`: one "replaces file"
-line per file of the mod).
+A real Fahrenheit install for tests of the bundle:
+`C:\_workspaces\fh-bundle-test` (alpha12, the bundle's mods, game copy
+without the ffx-rust hook in `~/ffx-work/demaster/game`); the logs are in
+`logs\<session>\` (`Yuta.FfxMods.*.log`: build status and patches of each
+mod; `Fahrenheit.Runtime.FhFileLoaderModule.log`: one "replaces file" line
+per file of the mods).
+
+## Tools
+
+- [`tools/py`](tools/py): research scripts. `ps2tex.py` decodes PS2
+  character and map textures to PNG; the others compare PS2 and HD models and
+  maps. Run them with `uv run --with pillow --with numpy python -I …`. Some
+  still have the research machine's paths in them.
+- `tools/sandbox/max.ini`: the game's graphics options at maximum, for the
+  harness runs.
+- ffx-mods has the disc extractor (`tools/ps2x`) and the live music test
+  (`tools/live-test.sh`).
+
+Never commit disc images, extracted files or anything from the game's
+archives.

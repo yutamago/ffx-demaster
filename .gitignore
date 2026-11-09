@@ -6,8 +6,8 @@ __pycache__/
 *.png
 *.dds
 out/
-
-# C# mod build output, release zips
-mod/artifacts/
+dist/
+# a local ffx-mods checkout for the bundle build (CI checks it out here)
+ffx-mods/
 *.zip
 .claude/
